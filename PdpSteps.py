@@ -11,7 +11,6 @@ class PdpStep:
 class PdpPipe(PdpStep):
     def __init__(self):
         super(PdpPipe, self).__init__()
-        self.output_processors = []
 
     def finalize(self):
         while True:
@@ -35,4 +34,18 @@ class PdpProcessor(PdpStep):
             out_block = self.job(in_block)
             self.pipe_out.put(out_block)
 
-            # todo: add a PDP_Fork class
+class PdpFork(PdpStep):
+    def __init__(self):
+        super(PdpFork, self).__init__()
+
+    def split(self):
+        while True:
+            in_block = self.pipe_in.get()
+            if in_block == None:
+                sys.exit()
+            # TODO: Split into output queues
+            len_block = len(in_block)
+            len_pipe = len(self.pipe_out)
+            for i in range(len(self.pipe_out)):
+                out_block = in_block[(i / len_pipe * len_block):((i + 1) / len_pipe * len_block)]
+                self.pipe_out.append(out_block)

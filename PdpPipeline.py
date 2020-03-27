@@ -1,5 +1,5 @@
 from multiprocessing import Process, Queue
-from PdpSteps import PdpPipe, PdpProcessor
+from PdpSteps import PdpPipe, PdpProcessor, PdpFork
 
 
 class PdpPipeline:
@@ -19,7 +19,7 @@ class PdpPipeline:
     def add(self, step):
 
         # Check for valid steps in the pipeline
-        if not isinstance(step, (PdpPipe, PdpProcessor)):
+        if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork)):
             raise Exception(
                 'Invalid type! Pipelines must include only PDP types!')
 
@@ -27,9 +27,13 @@ class PdpPipeline:
         if (not self.pipeline_tail) and not isinstance(step, PdpProcessor):
             raise Exception('A pipeline must start with a processor!')
 
-        # A PdpProcessor must be preceeded by a PdpPipe
-        if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail, PdpPipe):
-            raise Exception('A PdpProcessor must be preceeded by a PdpPipe!')
+        # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
+        if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail, (PdpPipe, PdpFork)):
+            raise Exception('A PdpProcessor must be preceeded by a PdpPipe or PdpFork!')
+
+        # A PdpFork must be preceeded by a PdpPipe
+        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail, PdpPipe):
+            raise Exception('A PdpFork must be preceeded by a PdpPipe!')
 
         self.num_steps += 1
 
@@ -42,6 +46,11 @@ class PdpPipeline:
         elif isinstance(step, PdpProcessor):
             # Link this to the previous pipe
             step.pipe_in = self.pipeline_tail.pipe_out
+        elif isinstance(step, PdpFork):
+            # Split input queue into several
+            step.pipe_in = self.pipeline_tail.pipe_out
+            s = [Queue(), Queue(), Queue()]
+            step.pipe_out = s
 
         # Complete linking the data structure and advance pipeline_tail
         self.pipeline_tail.next = step
@@ -67,6 +76,10 @@ class PdpPipeline:
                 if step == self.pipeline_tail:
                     p = Process(target=step.finalize)
                     p.start()
+            elif isinstance(step, PdpFork):
+                # Display final results
+                p = Process(target=step.split)
+                p.start()
             else:
                 raise Exception('Unknown step in the pipeline!', step)
 
