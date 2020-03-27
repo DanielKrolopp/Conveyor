@@ -1,5 +1,5 @@
 from multiprocessing import Process, Queue
-from PDP_Steps import PdpPipe, PdpProcessor
+from PdpSteps import PdpPipe, PdpProcessor
 
 
 class PdpPipeline:
@@ -80,12 +80,11 @@ class PdpPipeline:
 
 # Stub code meant for testing
 
+def job(arg):
+    print('This is a job to be run by a processor', arg)
+    return arg + 1
 
 def example1():
-    def job(arg):
-        print('This is a job to be run by a processor', arg)
-        return arg + 1
-
     pl = PdpPipeline()
     pl.add(PdpProcessor(job))
     pl.add(PdpPipe())
