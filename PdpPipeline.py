@@ -1,7 +1,7 @@
 from copy import copy
 from math import floor
 from multiprocessing import Process, Queue
-from PdpSteps import PdpPipe, PdpProcessor, PdpFork, PdpMerge
+from PdpSteps import *
 
 
 class PdpPipeline:
@@ -22,6 +22,7 @@ class PdpPipeline:
 
         # Check for valid steps in the pipeline
         parallel = []
+        print(self.pipeline_tail)
         if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpMerge)):
             raise Exception(
                 'Invalid type! Pipelines must include only PDP types!')
@@ -107,7 +108,7 @@ class PdpPipeline:
                         p.start()
                 elif isinstance(step, PdpFork):
                     # Display final results
-                    p = Process(target=step.split)
+                    p = Process(target=step.fork)
                     p.start()
                 elif isinstance(step, PdpMerge):
                     # Display final results
@@ -134,12 +135,12 @@ def example1():
     pl = PdpPipeline()
     pl.add(PdpProcessor(job))
     pl.add(PdpPipe())
-    pl.add(PdpFork(3))
+    pl.add(PdpReplicatingFork(3))
     pl.add(PdpProcessor(job))
     pl.add(PdpPipe())
     pl.add(PdpMerge(3))
     pl.add(PdpProcessor(job))
-    pl.run([0, 5, 9])
+    pl.run([0, 5, 9, 7, 2, 1])
 
 
 def main():

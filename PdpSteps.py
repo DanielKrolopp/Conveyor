@@ -15,7 +15,7 @@ class PdpPipe(PdpStep):
     def finalize(self):
         while True:
             in_block = self.pipe_in[0].get()
-            if in_block == None:
+            if in_block is None:
                 sys.exit()
             print('Final value:', in_block)
 
@@ -28,11 +28,12 @@ class PdpProcessor(PdpStep):
     def process(self):
         while True:
             in_block = self.pipe_in[0].get()
-            if in_block == None:
+            if in_block is None:
                 self.pipe_out[0].put(in_block)
                 sys.exit()
             out_block = self.job(in_block)
             self.pipe_out[0].put(out_block)
+
 
 class PdpFork(PdpStep):
     def __init__(self, splits):
@@ -41,12 +42,32 @@ class PdpFork(PdpStep):
         self.splits = splits
         self.count = 0
 
-    def split(self):
+    def fork(self):
+        return 0
+
+
+class PdpReplicatingFork(PdpFork):
+    def __init__(self, splits):
+        super(PdpReplicatingFork, self).__init__(splits)
+
+    def fork(self):
         while True:
             in_block = self.pipe_in[0].get()
-            if in_block == None:
+            if in_block is None:
                 sys.exit()
-            # TODO: Split into output queues
+            for i in range(self.splits):
+                self.pipe_out[i].put(in_block)
+
+
+class PdpBalancingFork(PdpFork):
+    def __init__(self, splits):
+        super(PdpBalancingFork, self).__init__(splits)
+
+    def fork(self):
+        while True:
+            in_block = self.pipe_in[0].get()
+            if in_block is None:
+                sys.exit()
             self.pipe_out[self.count].put(in_block)
             self.count = ((self.count + 1) % self.splits)
 
@@ -61,7 +82,6 @@ class PdpMerge(PdpStep):
         while True:
             in_block = self.pipe_in[self.count].get()
             self.count = ((self.count + 1) % self.merges)
-            if in_block == None:
+            if in_block is None:
                 sys.exit()
-            # TODO: Split into output queues
             self.pipe_out[0].put(in_block)
