@@ -3,9 +3,9 @@ import sys
 
 class PdpStep:
     def __init__(self):
-        self.pipe_in = None
-        self.pipe_out = None
-        self.next = None
+        self.pipe_in = [None]
+        self.pipe_out = [None]
+        self.next = [None]
 
 
 class PdpPipe(PdpStep):
@@ -14,7 +14,7 @@ class PdpPipe(PdpStep):
 
     def finalize(self):
         while True:
-            in_block = self.pipe_in.get()
+            in_block = self.pipe_in[0].get()
             if in_block == None:
                 sys.exit()
             print('Final value:', in_block)
@@ -27,25 +27,41 @@ class PdpProcessor(PdpStep):
 
     def process(self):
         while True:
-            in_block = self.pipe_in.get()
+            in_block = self.pipe_in[0].get()
             if in_block == None:
-                self.pipe_out.put(in_block)
+                self.pipe_out[0].put(in_block)
                 sys.exit()
             out_block = self.job(in_block)
-            self.pipe_out.put(out_block)
+            self.pipe_out[0].put(out_block)
 
 class PdpFork(PdpStep):
-    def __init__(self):
+    def __init__(self, splits):
         super(PdpFork, self).__init__()
+        self.pipe_out = [None] * splits
+        self.splits = splits
+        self.count = 0
 
     def split(self):
         while True:
-            in_block = self.pipe_in.get()
+            in_block = self.pipe_in[0].get()
             if in_block == None:
                 sys.exit()
             # TODO: Split into output queues
-            len_block = len(in_block)
-            len_pipe = len(self.pipe_out)
-            for i in range(len(self.pipe_out)):
-                out_block = in_block[(i / len_pipe * len_block):((i + 1) / len_pipe * len_block)]
-                self.pipe_out.append(out_block)
+            self.pipe_out[self.count].put(in_block)
+            self.count = ((self.count + 1) % self.splits)
+
+class PdpMerge(PdpStep):
+    def __init__(self, merges):
+        super(PdpMerge, self).__init__()
+        self.pipe_in = [None] * merges
+        self.merges = merges
+        self.count = 0
+
+    def merge(self):
+        while True:
+            in_block = self.pipe_in[self.count].get()
+            self.count = ((self.count + 1) % self.merges)
+            if in_block == None:
+                sys.exit()
+            # TODO: Split into output queues
+            self.pipe_out[0].put(in_block)
