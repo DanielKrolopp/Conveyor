@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 from math import floor
 from multiprocessing import Process, Queue
 from PdpSteps import *
@@ -22,7 +22,6 @@ class PdpPipeline:
 
         # Check for valid steps in the pipeline
         parallel = []
-        print(self.pipeline_tail)
         if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpMerge)):
             raise Exception(
                 'Invalid type! Pipelines must include only PDP types!')
@@ -50,7 +49,7 @@ class PdpPipeline:
         if isinstance(step, PdpPipe):
             # Create a pipe from the existing end of the pipeline to the new step
             for i in range(prev_steps):
-                temp = copy(step)
+                temp = deepcopy(step)
                 q = Queue()
                 self.pipeline_tail[i].pipe_out[0] = q
                 temp.pipe_in[0] = q
@@ -60,29 +59,28 @@ class PdpPipeline:
             # Link this to the previous
             for i in range(prev_steps):
                 for j in range(prev_pipes):
-                    temp = copy(step)
+                    temp = deepcopy(step)
                     temp.pipe_in[0] = self.pipeline_tail[i].pipe_out[j]
                     parallel.append(temp)
         elif isinstance(step, PdpFork):
             # Split input queue into several
             for i in range(prev_steps):
-                temp = copy(step)
+                temp = deepcopy(step)
                 q = Queue()
                 self.pipeline_tail[i].pipe_out[0] = q
                 temp.pipe_in[0] = q
-                s = [Queue()] * step.splits
+                s = []
+                for j in range(step.splits):
+                    s.append(Queue())
                 temp.pipe_out = s
                 parallel.append(temp)
         elif isinstance(step, PdpMerge):
             # Split input queue into several
             for i in range(floor(prev_steps / step.merges)):
-                temp = copy(step)
+                temp = deepcopy(step)
                 m = [Queue()] * step.merges
                 temp.pipe_in = m
-                print("merge " + str(i))
                 for j in range(step.merges):
-                    print("pipe " + str(j))
-                    print(self.pipeline_tail[i * step.merges + j])
                     self.pipeline_tail[i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
                 q = Queue()
                 temp.pipe_out[0] = q
@@ -141,13 +139,13 @@ def job(arg):
 def example1():
     pl = PdpPipeline()
     pl.add(PdpProcessor(job))
-    pl.add(PdpBalancingFork(3))
+    pl.add(PdpBalancingFork(2))
     pl.add(PdpProcessor(job))
-    pl.add(PdpPipe())
+    pl.add(PdpReplicatingFork(2))
     pl.add(PdpProcessor(job))
-    pl.add(PdpMerge(3))
+    pl.add(PdpMerge(4))
     pl.add(PdpProcessor(job))
-    pl.run([0, 5, 9, 7, 2, 1])
+    pl.run([0, 5, 9, 7, 2, 1, 12, 15])
 
 
 def main():

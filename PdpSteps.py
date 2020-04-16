@@ -27,9 +27,7 @@ class PdpProcessor(PdpStep):
 
     def process(self):
         while True:
-            print("processor")
             in_block = self.pipe_in[0].get()
-            print(in_block)
             if in_block is None:
                 self.pipe_out[0].put(in_block)
                 sys.exit()
@@ -67,9 +65,7 @@ class PdpBalancingFork(PdpFork):
 
     def fork(self):
         while True:
-            print(self.splits)
             in_block = self.pipe_in[0].get()
-            print(in_block)
             if in_block is None:
                 for i in range(self.splits):
                     self.pipe_out[i].put(in_block)
