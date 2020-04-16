@@ -27,7 +27,9 @@ class PdpProcessor(PdpStep):
 
     def process(self):
         while True:
+            print("processor")
             in_block = self.pipe_in[0].get()
+            print(in_block)
             if in_block is None:
                 self.pipe_out[0].put(in_block)
                 sys.exit()
@@ -53,10 +55,10 @@ class PdpReplicatingFork(PdpFork):
     def fork(self):
         while True:
             in_block = self.pipe_in[0].get()
-            if in_block is None:
-                sys.exit()
             for i in range(self.splits):
                 self.pipe_out[i].put(in_block)
+            if in_block is None:
+                sys.exit()
 
 
 class PdpBalancingFork(PdpFork):
@@ -65,8 +67,12 @@ class PdpBalancingFork(PdpFork):
 
     def fork(self):
         while True:
+            print(self.splits)
             in_block = self.pipe_in[0].get()
+            print(in_block)
             if in_block is None:
+                for i in range(self.splits):
+                    self.pipe_out[i].put(in_block)
                 sys.exit()
             self.pipe_out[self.count].put(in_block)
             self.count = ((self.count + 1) % self.splits)
@@ -77,11 +83,14 @@ class PdpMerge(PdpStep):
         self.pipe_in = [None] * merges
         self.merges = merges
         self.count = 0
+        self.processed = merges
 
     def merge(self):
         while True:
             in_block = self.pipe_in[self.count].get()
             self.count = ((self.count + 1) % self.merges)
-            if in_block is None:
-                sys.exit()
             self.pipe_out[0].put(in_block)
+            if in_block is None:
+                self.processed = self.processed - 1
+                if self.processed == 0:
+                    sys.exit()
