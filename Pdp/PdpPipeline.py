@@ -1,7 +1,7 @@
 from copy import copy, deepcopy
 from math import floor
 from multiprocessing import Process, Queue
-from PdpSteps import *
+from .PdpSteps import PdpProcessor, PdpPipe, PdpFork, PdpBalancingFork, PdpReplicatingFork, PdpMerge
 
 
 class PdpPipeline:
@@ -129,28 +129,3 @@ class PdpPipeline:
         for block in init_block_list:
             self.pipeline_head[0].pipe_in[0].put(block)
         self.pipeline_head[0].pipe_in[0].put(None)
-
-# Stub code meant for testing
-
-def job(arg):
-    print('This is a job to be run by a processor', arg)
-    return arg + 1
-
-def example1():
-    pl = PdpPipeline()
-    pl.add(PdpProcessor(job))
-    pl.add(PdpBalancingFork(2))
-    pl.add(PdpProcessor(job))
-    pl.add(PdpReplicatingFork(2))
-    pl.add(PdpProcessor(job))
-    pl.add(PdpMerge(4))
-    pl.add(PdpProcessor(job))
-    pl.run([0, 5, 9, 7, 2, 1, 12, 15])
-
-
-def main():
-    example1()
-
-
-if __name__ == '__main__':
-    main()
