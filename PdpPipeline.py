@@ -36,12 +36,12 @@ class PdpPipeline:
             raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpMerge!')
 
             # A PdpFork must be preceeded by a PdpPipe
-        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], PdpPipe):
-            raise Exception('A PdpFork must be preceeded by a PdpPipe!')
+        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], PdpProcessor):
+            raise Exception('A PdpFork must be preceeded by a PdpProcessor!')
 
             # A PdpMerge must be preceeded by a PdpPipe
-        if isinstance(step, PdpMerge) and not isinstance(self.pipeline_tail[0], PdpPipe):
-            raise Exception('A PdpMerge must be preceeded by a PdpPipe!')
+        if isinstance(step, PdpMerge) and not isinstance(self.pipeline_tail[0], PdpProcessor):
+            raise Exception('A PdpMerge must be preceeded by a PdpProcessor!')
 
         self.num_steps += 1
 
@@ -67,7 +67,9 @@ class PdpPipeline:
             # Split input queue into several
             for i in range(prev_steps):
                 temp = copy(step)
-                temp.pipe_in[0] = self.pipeline_tail[i].pipe_out[0]
+                q = Queue()
+                self.pipeline_tail[i].pipe_out[0] = q
+                temp.pipe_in[0] = q
                 s = [Queue()] * step.splits
                 temp.pipe_out = s
                 parallel.append(temp)
@@ -75,8 +77,13 @@ class PdpPipeline:
             # Split input queue into several
             for i in range(floor(prev_steps / step.merges)):
                 temp = copy(step)
+                m = [Queue()] * step.merges
+                temp.pipe_in = m
+                print("merge " + str(i))
                 for j in range(step.merges):
-                    temp.pipe_in[j] = self.pipeline_tail[i * step.merges + j].pipe_out[0]
+                    print("pipe " + str(j))
+                    print(self.pipeline_tail[i * step.merges + j])
+                    self.pipeline_tail[i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
                 q = Queue()
                 temp.pipe_out[0] = q
                 parallel.append(temp)
@@ -134,12 +141,10 @@ def job(arg):
 def example1():
     pl = PdpPipeline()
     pl.add(PdpProcessor(job))
-    pl.add(PdpPipe())
     pl.add(PdpBalancingFork(3))
     pl.add(PdpProcessor(job))
     pl.add(PdpPipe())
     pl.add(PdpProcessor(job))
-    pl.add(PdpPipe())
     pl.add(PdpMerge(3))
     pl.add(PdpProcessor(job))
     pl.run([0, 5, 9, 7, 2, 1])

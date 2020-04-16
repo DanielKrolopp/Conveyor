@@ -84,13 +84,19 @@ class PdpMerge(PdpStep):
         self.merges = merges
         self.count = 0
         self.processed = merges
+        self.done = [False] * merges
 
     def merge(self):
         while True:
             in_block = self.pipe_in[self.count].get()
-            self.count = ((self.count + 1) % self.merges)
-            self.pipe_out[0].put(in_block)
             if in_block is None:
                 self.processed = self.processed - 1
+                self.done[self.count] = True
                 if self.processed == 0:
+                    self.pipe_out[0].put(in_block)
                     sys.exit()
+            else:
+                self.pipe_out[0].put(in_block)
+
+            while self.done[self.count] is True:
+                self.count = ((self.count + 1) % self.merges)
