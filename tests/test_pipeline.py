@@ -26,11 +26,11 @@ class TestPipeline(TestCase):
         def job(arg):
             return arg + 1
 
-        def compare(arg):
+        def finalize(arg):
             self.assertEqual(arg, 4)
 
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpSteps.PdpProcessor(job))
         pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpProcessor(compare))
+        pl.add(PdpSteps.PdpProcessor(finalize))
         pl.run([3])
