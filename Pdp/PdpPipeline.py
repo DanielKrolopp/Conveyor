@@ -35,12 +35,12 @@ class PdpPipeline:
             raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpJoin!')
 
         # A PdpFork must be preceeded by a PdpPipe
-        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], PdpProcessor):
-            raise Exception('A PdpFork must be preceeded by a PdpProcessor!')
+        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+            raise Exception('A PdpFork must be preceeded by a PdpProcessor or PdpPipe!')
 
         # A PdpJoin must be preceeded by a PdpPipe
-        if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], PdpProcessor):
-            raise Exception('A PdpJoin must be preceeded by a PdpProcessor!')
+        if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+            raise Exception('A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
 
         self.num_steps += 1
 
