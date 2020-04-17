@@ -2,7 +2,7 @@ from unittest import TestCase
 from collections import Counter
 
 from Pdp import PdpPipeline
-from Pdp import PdpSteps
+from Pdp import PdpStages
 from . import dummy_return_arg
 
 
@@ -22,7 +22,7 @@ class TestPipelineFunctionality(TestCase):
             self.assertEqual(arg, 3)
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([3])
 
     '''
@@ -37,9 +37,9 @@ class TestPipelineFunctionality(TestCase):
             self.assertEqual(arg, 4)
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpProcessor(job))
-        pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpProcessor(job))
+        pl.add(PdpStages.PdpPipe())
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([3])
 
     '''
@@ -59,10 +59,10 @@ class TestPipelineFunctionality(TestCase):
             self.counts[arg] += 1
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpBalancingFork(2))
-        pl.add(PdpSteps.PdpProcessor(job1, job2))
-        pl.add(PdpSteps.PdpMerge(2))
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpBalancingFork(2))
+        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
+        pl.add(PdpStages.PdpJoin(2))
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([False, False])
 
         self.assertEqual(self.counts['job1'], self.counts['job2'])
@@ -84,10 +84,10 @@ class TestPipelineFunctionality(TestCase):
             self.counts[arg] += 1
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpBalancingFork(2))
-        pl.add(PdpSteps.PdpProcessor(job1, job2))
-        pl.add(PdpSteps.PdpMerge(2))
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpBalancingFork(2))
+        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
+        pl.add(PdpStages.PdpJoin(2))
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([False, False])
 
         self.assertEqual(self.counts['job1'], self.counts['job2'])
@@ -102,11 +102,11 @@ class TestPipelineFunctionality(TestCase):
             self.assertEqual(self.counts['string'], self.counts['job2'])
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpProcessor(dummy_return_arg))
-        pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpProcessor(dummy_return_arg))
-        pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpPipe())
+        pl.add(PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpPipe())
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run(['string'])
         pl.run(['string'])
 
@@ -130,14 +130,15 @@ class TestPipelineFunctionality(TestCase):
             return (stage + 1, ''.join(l))
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpSteps.PdpProcessor(job))
-        pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpBalancingFork(2))
-        pl.add(PdpSteps.PdpPipe())
-        pl.add(PdpSteps.PdpProcessor(job, dummy_return_arg))
-        pl.add(PdpSteps.PdpReplicatingFork(2))
-        pl.add(PdpSteps.PdpProcessor(
-            job, dummy_return_arg, job, dummy_return_arg))
-        pl.add(PdpSteps.PdpMerge(4))
-        pl.add(PdpSteps.PdpProcessor(finalize))
+        pl.add(PdpStages.PdpProcessor(job))
+        pl.add(PdpStages.PdpPipe())
+        pl.add(PdpStages.PdpBalancingFork(2))
+        pl.add(PdpStages.PdpPipe())
+        pl.add(PdpStages.PdpProcessor(job),
+               PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpReplicatingFork(2))
+        pl.add(PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg),
+             PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpJoin(4))
+        pl.add(PdpStages.PdpProcessor(finalize))
         pl.run(['string', 'string'])

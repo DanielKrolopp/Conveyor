@@ -1,7 +1,7 @@
 from copy import copy, deepcopy
 from math import floor
 from multiprocessing import Process, Queue
-from .PdpSteps import PdpProcessor, PdpPipe, PdpFork, PdpBalancingFork, PdpReplicatingFork, PdpMerge
+from .PdpStages import PdpProcessor, PdpPipe, PdpFork, PdpBalancingFork, PdpReplicatingFork, PdpJoin
 
 
 class PdpPipeline:
@@ -22,7 +22,7 @@ class PdpPipeline:
 
         # Check for valid steps in the pipeline
         parallel = []
-        if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpMerge)):
+        if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
             raise Exception(
                 'Invalid type! Pipelines must include only PDP types!')
 
@@ -31,16 +31,16 @@ class PdpPipeline:
             raise Exception('A pipeline must start with a processor!')
 
         # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
-        if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpMerge)):
-            raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpMerge!')
+        if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
+            raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpJoin!')
 
         # A PdpFork must be preceeded by a PdpPipe
         if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], PdpProcessor):
             raise Exception('A PdpFork must be preceeded by a PdpProcessor!')
 
-        # A PdpMerge must be preceeded by a PdpPipe
-        if isinstance(step, PdpMerge) and not isinstance(self.pipeline_tail[0], PdpProcessor):
-            raise Exception('A PdpMerge must be preceeded by a PdpProcessor!')
+        # A PdpJoin must be preceeded by a PdpPipe
+        if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], PdpProcessor):
+            raise Exception('A PdpJoin must be preceeded by a PdpProcessor!')
 
         self.num_steps += 1
 
@@ -74,7 +74,7 @@ class PdpPipeline:
                     s.append(Queue())
                 temp.pipe_out = s
                 parallel.append(temp)
-        elif isinstance(step, PdpMerge):
+        elif isinstance(step, PdpJoin):
             # Split input queue into several
             for i in range(floor(prev_steps / step.merges)):
                 temp = deepcopy(step)
@@ -115,7 +115,7 @@ class PdpPipeline:
                     # Display final results
                     p = Process(target=step.fork)
                     p.start()
-                elif isinstance(step, PdpMerge):
+                elif isinstance(step, PdpJoin):
                     # Display final results
                     p = Process(target=step.merge)
                     p.start()

@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from Pdp import PdpPipeline
-from Pdp import PdpSteps
+from Pdp import PdpStages
 
 '''
 Test configurations that are/aren't allowed in the pipeline.
@@ -33,7 +33,7 @@ class TestPipelineArchitecture(TestCase):
 
         # Valid processor
         try:
-            pl.add(PdpSteps.PdpProcessor(finalize))
+            pl.add(PdpStages.PdpProcessor(finalize))
         except Exception:
             self.fail('Should not raise an exception: ' + str(e))
 
@@ -49,30 +49,30 @@ class TestPipelineArchitecture(TestCase):
 
         # Pipe (should be allowed)
         try:
-            pl.add(PdpSteps.PdpBalancingFork(2))
+            pl.add(PdpStages.PdpBalancingFork(2))
         except Exception as e:
             self.fail('Should not raise an exception: ' + str(e))
 
         # Balancing fork (should be allowed)
         try:
-            pl.add(PdpSteps.PdpBalancingFork(2))
+            pl.add(PdpStages.PdpBalancingFork(2))
         except Exception as e:
             self.fail('Should not raise an exception: ' + str(e))
 
         # Replicating fork (should be allowed)
         try:
-            pl.add(PdpSteps.PdpReplicatingFork(2))
+            pl.add(PdpStages.PdpReplicatingFork(2))
         except Exception as e:
             self.fail('Should not raise an exception: ' + str(e))
 
         # Processor (should be allowed)
         try:
-            pl.add(PdpSteps.PdpProcessor(finalize))
+            pl.add(PdpStages.PdpProcessor(finalize))
         except Exception as e:
             self.fail('Should not raise an exception: ' + str(e))
 
         # Join (should not be allowed at pipeline head)
         with self.assertRaises(Exception) as e:
-            pl.add(PdpSteps.PdpMerge(2))
+            pl.add(PdpStages.PdpJoin(2))
         self.assertEqual(
-            str(e.exception), 'A PdpMerge must be preceeded by a PdpProcessor!')
+            str(e.exception), 'A PdpJoin must be preceeded by a PdpProcessor!')

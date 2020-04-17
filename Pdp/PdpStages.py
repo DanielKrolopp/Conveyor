@@ -73,9 +73,9 @@ class PdpBalancingFork(PdpFork):
             self.pipe_out[self.count].put(in_block)
             self.count = ((self.count + 1) % self.splits)
 
-class PdpMerge(PdpStep):
+class PdpJoin(PdpStep):
     def __init__(self, merges):
-        super(PdpMerge, self).__init__()
+        super(PdpJoin, self).__init__()
         self.pipe_in = [None] * merges
         self.merges = merges
         self.count = 0

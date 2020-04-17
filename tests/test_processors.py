@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from Pdp import PdpPipeline
-from Pdp import PdpSteps
+from Pdp import PdpStages
 
 '''
 Test processors
@@ -21,12 +21,12 @@ class TestProcessors(TestCase):
 
         # PdpProcessor should not take a non-function as an arg
         with self.assertRaises(Exception) as e:
-            pl.add(PdpSteps.PdpProcessor("cookie"))
+            pl.add(PdpStages.PdpProcessor("cookie"))
         self.assertEqual(
             str(e.exception), 'Invalid type! Pipeline processors must have a valid job!')
 
         # PdpProcessor should allow a function as an arg
         try:
-            pl.add(PdpSteps.PdpProcessor(finalize))
+            pl.add(PdpStages.PdpProcessor(finalize))
         except Exception:
             self.fail('Should not raise an exception')
