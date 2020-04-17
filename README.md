@@ -15,3 +15,14 @@ __Balanced Forks__ allow one processor to balance a stream of data over multiple
 
 ### Joins
 __Joins__ allow multiple processors to combine their data streams into one logical pipe. The combined stream can then be forked again for the next step of the pipeline or serve as output at the end of the pipeline.
+
+# Building from source
+To build the distribution archives, you will need the latest version of setuptools and wheel.
+
+`python3 -m pip install --user --upgrade setuptools wheel`
+
+Run `setup.py` to build using the following command:
+
+`python3 setup.py sdist bdist_wheel`
+
+The compiled `.whl` and `.tar.gz` files will be in the `/dist` directory.
