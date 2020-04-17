@@ -75,4 +75,4 @@ class TestPipelineArchitecture(TestCase):
         with self.assertRaises(Exception) as e:
             pl.add(PdpStages.PdpJoin(2))
         self.assertEqual(
-            str(e.exception), 'A PdpJoin must be preceeded by a PdpProcessor!')
+            str(e.exception), 'A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')

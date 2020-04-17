@@ -18,73 +18,75 @@ class PdpPipeline:
         self.pipeline_head = self.pipeline_tail
 
     # Add a step to the pipeline. The step can be either a pipe or processor
-    def add(self, step):
+    def add(self, *args):
 
         # Check for valid steps in the pipeline
         parallel = []
-        if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
-            raise Exception(
-                'Invalid type! Pipelines must include only PDP types!')
-
-        # A pipeline must start with a processor
-        if (not self.pipeline_tail) and not isinstance(step, PdpProcessor):
-            raise Exception('A pipeline must start with a processor!')
-
-        # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
-        if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
-            raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpJoin!')
-
-        # A PdpFork must be preceeded by a PdpPipe
-        if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-            raise Exception('A PdpFork must be preceeded by a PdpProcessor or PdpPipe!')
-
-        # A PdpJoin must be preceeded by a PdpPipe
-        if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-            raise Exception('A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
-
-        self.num_steps += 1
-
+        argc = len(args)
         prev_steps = len(self.pipeline_tail)
-        prev_pipes = len(self.pipeline_tail[0].pipe_out)
-        if isinstance(step, PdpPipe):
-            # Create a pipe from the existing end of the pipeline to the new step
-            for i in range(prev_steps):
-                temp = deepcopy(step)
-                q = Queue()
-                self.pipeline_tail[i].pipe_out[0] = q
-                temp.pipe_in[0] = q
-                temp.pipe_out[0] = q
-                parallel.append(temp)
-        elif isinstance(step, PdpProcessor):
-            # Link this to the previous
-            for i in range(prev_steps):
-                for j in range(prev_pipes):
+        for step in args:
+            if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
+                raise Exception(
+                    'Invalid type! Pipelines must include only PDP types!')
+
+            # A pipeline must start with a processor
+            if (not self.pipeline_tail) and not isinstance(step, PdpProcessor):
+                raise Exception('A pipeline must start with a processor!')
+
+            # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
+            if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
+                self.add(PdpPipe())
+
+            # A PdpFork must be preceeded by a PdpPipe
+            if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+                raise Exception('A PdpFork must be preceeded by a PdpProcessor or PdpPipe!')
+
+            # A PdpJoin must be preceeded by a PdpPipe
+            if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+                raise Exception('A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
+
+            self.num_steps += 1
+
+            prev_pipes = len(self.pipeline_tail[0].pipe_out)
+            if isinstance(step, PdpPipe):
+                # Create a pipe from the existing end of the pipeline to the new step
+                for i in range(prev_steps):
                     temp = deepcopy(step)
-                    temp.pipe_in[0] = self.pipeline_tail[i].pipe_out[j]
+                    q = Queue()
+                    self.pipeline_tail[i].pipe_out[0] = q
+                    temp.pipe_in[0] = q
+                    temp.pipe_out[0] = q
                     parallel.append(temp)
-        elif isinstance(step, PdpFork):
-            # Split input queue into several
-            for i in range(prev_steps):
-                temp = deepcopy(step)
-                q = Queue()
-                self.pipeline_tail[i].pipe_out[0] = q
-                temp.pipe_in[0] = q
-                s = []
-                for j in range(step.splits):
-                    s.append(Queue())
-                temp.pipe_out = s
-                parallel.append(temp)
-        elif isinstance(step, PdpJoin):
-            # Split input queue into several
-            for i in range(floor(prev_steps / step.merges)):
-                temp = deepcopy(step)
-                m = [Queue()] * step.merges
-                temp.pipe_in = m
-                for j in range(step.merges):
-                    self.pipeline_tail[i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
-                q = Queue()
-                temp.pipe_out[0] = q
-                parallel.append(temp)
+            elif isinstance(step, PdpProcessor):
+                # Link this to the previous
+                for i in range(int(prev_steps / argc)):
+                    for j in range(prev_pipes):
+                        temp = deepcopy(step)
+                        temp.pipe_in[0] = self.pipeline_tail[i].pipe_out[j]
+                        parallel.append(temp)
+            elif isinstance(step, PdpFork):
+                # Split input queue into several
+                for i in range(prev_steps):
+                    temp = deepcopy(step)
+                    q = Queue()
+                    self.pipeline_tail[i].pipe_out[0] = q
+                    temp.pipe_in[0] = q
+                    s = []
+                    for j in range(step.splits):
+                        s.append(Queue())
+                    temp.pipe_out = s
+                    parallel.append(temp)
+            elif isinstance(step, PdpJoin):
+                # Split input queue into several
+                for i in range(floor(prev_steps / step.merges)):
+                    temp = deepcopy(step)
+                    m = [Queue()] * step.merges
+                    temp.pipe_in = m
+                    for j in range(step.merges):
+                        self.pipeline_tail[i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
+                    q = Queue()
+                    temp.pipe_out[0] = q
+                    parallel.append(temp)
 
         # Complete linking the data structure and advance pipeline_tail
         self.pipeline_tail[0].next = parallel
