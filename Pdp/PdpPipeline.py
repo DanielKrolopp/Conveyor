@@ -34,11 +34,11 @@ class PdpPipeline:
         if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpMerge)):
             raise Exception('A PdpProcessor must be preceeded by a PdpPipe, PdpFork, or PdpMerge!')
 
-            # A PdpFork must be preceeded by a PdpPipe
+        # A PdpFork must be preceeded by a PdpPipe
         if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], PdpProcessor):
             raise Exception('A PdpFork must be preceeded by a PdpProcessor!')
 
-            # A PdpMerge must be preceeded by a PdpPipe
+        # A PdpMerge must be preceeded by a PdpPipe
         if isinstance(step, PdpMerge) and not isinstance(self.pipeline_tail[0], PdpProcessor):
             raise Exception('A PdpMerge must be preceeded by a PdpProcessor!')
 
