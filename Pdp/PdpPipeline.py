@@ -30,9 +30,8 @@ class PdpPipeline:
         pipe_ptr = 0
         prev_fanout = 0
         curr_fanin = 0
-        if isinstance(args[0], PdpProcessor):
-            for prev in self.pipeline_tail:
-                prev_fanout += len(prev.pipe_out)
+        for prev in self.pipeline_tail:
+            prev_fanout += len(prev.pipe_out)
         if isinstance(args[0], PdpJoin):
             for curr in args:
                 curr_fanin += curr.merges
