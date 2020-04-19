@@ -49,12 +49,13 @@ class PdpPipeline:
             # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
             if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
                 self.add(PdpPipe())
+                print("Warning: Adding an implicit pipe between a PdpProcessor and PdpFork/PdpJoin")
 
-            # A PdpFork must be preceeded by a PdpPipe
+            # A PdpFork must be preceeded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
                 raise Exception('A PdpFork must be preceeded by a PdpProcessor or PdpPipe!')
 
-            # A PdpJoin must be preceeded by a PdpPipe
+            # A PdpJoin must be preceeded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
                 raise Exception('A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
 
@@ -71,6 +72,10 @@ class PdpPipeline:
                     parallel.append(temp)
 
             elif isinstance(step, PdpProcessor):
+                # Ensure job is a real function
+                if not callable(step.job):
+                    raise Exception('Invalid type! Pipeline processors must have a valid job!')
+
                 # If number of objects in previous step can be evenly divided into job groups, do that
                 if prev_steps % argc == 0:
                     for i in range(int(prev_steps / argc)):
