@@ -1,5 +1,8 @@
 from unittest import TestCase
 from collections import Counter
+import sys
+from threading import Lock
+from time import sleep
 
 from Pdp import PdpPipeline
 from Pdp import PdpStages
@@ -97,31 +100,36 @@ class TestPipelineFunctionality(TestCase):
     Note: currently, this hangs on the second run.
     '''
 
-    def allow_multiple_pipeline_runs(self):
-        def finalize(arg):
-            self.assertEqual(self.counts['string'], self.counts['job2'])
+    def test_allow_multiple_pipeline_runs(self):
 
+        def finalize(arg):
+            if arg == 'second':
+                lock.release()
+
+        lock = Lock()
         pl = PdpPipeline.PdpPipeline()
+
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpProcessor(finalize))
-        pl.run(['string'])
-        pl.run(['string'])
+        lock.acquire()
+        pl.run(['first'])
+        pl.run(['second'])
+        sleep(1)
+        self.assert_(lock.acquire(blocking=False))
 
     '''
     Test forks and joins. 4 messages should come through. 3 of them are
     manipulated along the way.
     '''
 
-    def fork_and_join1(self):
+    def test_fork_and_join1(self):
         self.counts = Counter()
 
         def finalize(arg):
-            self.assertEqual(self.counts['string'], 1)
-            self.assertEqual(self.counts['turing'], 2)
-            self.assertEqual(self.counts['uvring'], 1)
+            return arg
 
         def job(arg):
             stage, string = arg
@@ -142,3 +150,8 @@ class TestPipelineFunctionality(TestCase):
         pl.add(PdpStages.PdpJoin(4))
         pl.add(PdpStages.PdpProcessor(finalize))
         pl.run(['string', 'string'])
+
+        sys.stderr.write('Hey!', self.counts)
+        self.assertEqual(self.counts['string'], 1)
+        self.assertEqual(self.counts['turing'], 2)
+        self.assertEqual(self.counts['uvring'], 1)
