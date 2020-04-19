@@ -26,7 +26,18 @@ class PdpPipeline:
         parallel = []
         argc = len(args)
         prev_steps = len(self.pipeline_tail)
-        for step in args:
+        step_ptr = 0
+        pipe_ptr = 0
+        prev_fanout = 0
+        curr_fanin = 0
+        if isinstance(args[0], PdpProcessor):
+            for prev in self.pipeline_tail:
+                prev_fanout += len(prev.pipe_out)
+        if isinstance(args[0], PdpJoin):
+            for curr in args:
+                curr_fanin += curr.merges
+        for s in range(len(args)):
+            step = args[s]
             if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
                 raise Exception(
                     'Invalid type! Pipelines must include only PDP types!')
@@ -49,7 +60,6 @@ class PdpPipeline:
 
             self.num_steps += 1
 
-            prev_pipes = len(self.pipeline_tail[0].pipe_out)
             if isinstance(step, PdpPipe):
                 # Create a pipe from the existing end of the pipeline to the new step
                 for i in range(prev_steps):
@@ -59,38 +69,68 @@ class PdpPipeline:
                     temp.pipe_in[0] = q
                     temp.pipe_out[0] = q
                     parallel.append(temp)
+
             elif isinstance(step, PdpProcessor):
-                # Link this to the previous
-                for i in range(int(prev_steps / argc)):
-                    for j in range(prev_pipes):
-                        temp = deepcopy(step)
-                        temp.pipe_in[0] = self.pipeline_tail[i].pipe_out[j]
-                        parallel.append(temp)
+                # If number of objects in previous step can be evenly divided into job groups, do that
+                if prev_steps % argc == 0:
+                    for i in range(int(prev_steps / argc)):
+                        prev_pipes = len(self.pipeline_tail[step_ptr + i].pipe_out)
+                        for j in range(prev_pipes):
+                            temp = deepcopy(step)
+                            temp.pipe_in[0] = self.pipeline_tail[step_ptr + i].pipe_out[j]
+                            parallel.append(temp)
+                    step_ptr += prev_steps / argc
+                # Else if enough jobs were given to explicitly assign one job to each pipe output, do that
+                elif prev_fanout == argc:
+                    temp = deepcopy(step)
+                    temp.pipe_in[0] = self.pipeline_tail[step_ptr].pipe_out[pipe_ptr]
+                    parallel.append(temp)
+                    if pipe_ptr + 1 == len(self.pipeline_tail[step_ptr].pipe_out):
+                        step_ptr += 1
+                        pipe_ptr = 0
+                    else:
+                        pipe_ptr += 1
+                # Else we have ambiguity on how to divide the jobs (might be able to make some inferences)
+                else:
+                    raise Exception('Ambiguity Error: Jobs cannot be divided among fanout of previous step')
+
             elif isinstance(step, PdpFork):
-                # Split input queue into several
-                for i in range(prev_steps):
-                    temp = deepcopy(step)
-                    q = Queue()
-                    self.pipeline_tail[i].pipe_out[0] = q
-                    temp.pipe_in[0] = q
-                    s = []
-                    for j in range(step.splits):
-                        s.append(Queue())
-                    temp.pipe_out = s
-                    parallel.append(temp)
-                    self.syntax_analyzer.push_fork(temp)
+                # If number of objects in previous step can be evenly divided into forking groups, do that
+                if prev_steps % argc == 0:
+                    for i in range(int(prev_steps / argc)):
+                        # Split input queue into several
+                        temp = deepcopy(step)
+                        q = Queue()
+                        self.pipeline_tail[step_ptr + i].pipe_out[0] = q
+                        temp.pipe_in[0] = q
+                        s = []
+                        for j in range(step.splits):
+                            s.append(Queue())
+                        temp.pipe_out = s
+                        parallel.append(temp)
+                        self.syntax_analyzer.push_fork(temp)
+                    step_ptr += prev_steps / argc
+                # Else we have ambiguity on how to allocate forks
+                else:
+                    raise Exception('Ambiguity Error: Forks cannot be divided among fanout of previous step')
             elif isinstance(step, PdpJoin):
-                # Split input queue into several
-                for i in range(floor(prev_steps / step.merges)):
-                    temp = deepcopy(step)
-                    m = [Queue()] * step.merges
-                    temp.pipe_in = m
-                    for j in range(step.merges):
-                        self.pipeline_tail[i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
-                    q = Queue()
-                    temp.pipe_out[0] = q
-                    parallel.append(temp)
-                    self.syntax_analyzer.check_merge(temp)
+                # If fanout of previous step can be evenly divided into merge groups, do that
+                if prev_fanout % curr_fanin == 0:
+                    for i in range(int(prev_fanout / curr_fanin)):
+                        # Merge several input queues into one
+                        temp = deepcopy(step)
+                        m = [Queue()] * step.merges
+                        temp.pipe_in = m
+                        for j in range(step.merges):
+                            self.pipeline_tail[step_ptr + i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
+                        q = Queue()
+                        temp.pipe_out[0] = q
+                        parallel.append(temp)
+                        self.syntax_analyzer.check_merge(temp)
+                    step_ptr += step.merges * prev_fanout / curr_fanin
+                # Else we have ambiguity on how to allocate merges
+                else:
+                    raise Exception('Ambiguity Error: Merges cannot be divided among fanout of previous step')
 
         if isinstance(args[0], PdpProcessor) and argc > 1 and argc != prev_steps:
             self.syntax_analyzer.mark_inference()
