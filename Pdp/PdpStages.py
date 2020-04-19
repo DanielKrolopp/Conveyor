@@ -13,11 +13,13 @@ class PdpPipe(PdpStep):
         super(PdpPipe, self).__init__()
 
     def finalize(self):
+        print('Finalizing')
         while True:
             in_block = self.pipe_in[0].get()
+            # If block is "magic value" of none
             if in_block is None:
-                sys.exit()
-            print('Final value:', in_block)
+                print('Final value:', in_block)
+                break
 
 
 class PdpProcessor(PdpStep):

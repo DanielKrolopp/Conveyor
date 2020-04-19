@@ -105,8 +105,9 @@ class PdpPipeline:
     # PdpProcessor/PdpPipe.
     def run(self, init_block_list):
 
-        # Add a dummy pipe at the end for output before running
-        self.add(PdpPipe())
+        # Add a dummy pipe at the end for output before running if not already added
+        if not isinstance(self.pipeline_tail[0], PdpPipe):
+            self.add(PdpPipe())
 
         print('Running a', self.num_steps - 1, 'step pipeline...')
 
