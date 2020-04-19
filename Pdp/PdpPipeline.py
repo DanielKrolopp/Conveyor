@@ -84,7 +84,7 @@ class PdpPipeline:
                             temp = deepcopy(step)
                             temp.pipe_in[0] = self.pipeline_tail[step_ptr + i].pipe_out[j]
                             parallel.append(temp)
-                    step_ptr += prev_steps / argc
+                    step_ptr += int(prev_steps / argc)
                 # Else if enough jobs were given to explicitly assign one job to each pipe output, do that
                 elif prev_fanout == argc:
                     temp = deepcopy(step)
@@ -114,7 +114,7 @@ class PdpPipeline:
                         temp.pipe_out = s
                         parallel.append(temp)
                         self.syntax_analyzer.push_fork(temp)
-                    step_ptr += prev_steps / argc
+                    step_ptr += int(prev_steps / argc)
                 # Else we have ambiguity on how to allocate forks
                 else:
                     raise Exception('Ambiguity Error: Forks cannot be divided among fanout of previous step')
@@ -132,7 +132,7 @@ class PdpPipeline:
                         temp.pipe_out[0] = q
                         parallel.append(temp)
                         self.syntax_analyzer.check_merge(temp)
-                    step_ptr += step.merges * prev_fanout / curr_fanin
+                    step_ptr += int(step.merges * prev_fanout / curr_fanin)
                 # Else we have ambiguity on how to allocate merges
                 else:
                     raise Exception('Ambiguity Error: Merges cannot be divided among fanout of previous step')
