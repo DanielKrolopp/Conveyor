@@ -33,23 +33,27 @@ class PdpPipeline:
             if (not self.pipeline_tail) and not isinstance(step, PdpProcessor):
                 raise Exception('A pipeline must start with a processor!')
 
-            # A PdpProcessor must be preceeded by a PdpPipe or PdpFork
+            # A PdpProcessor must be preceded by a PdpPipe or PdpFork
             if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
                 self.add(PdpPipe())
                 print("Warning: Adding an implicit pipe between a PdpProcessor and PdpFork/PdpJoin")
 
-            # A PdpFork must be preceeded by a PdpPipe or PdpProcessor
+            # A PdpFork must be preceded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                raise Exception('A PdpFork must be preceeded by a PdpProcessor or PdpPipe!')
+                raise Exception('A PdpFork must be preceded by a PdpProcessor or PdpPipe!')
 
-            # A PdpJoin must be preceeded by a PdpPipe or PdpProcessor
+            # A PdpJoin must be preceded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                raise Exception('A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
+                raise Exception('A PdpJoin must be preceded by a PdpProcessor or PdpPipe!')
 
             self.num_steps += 1
 
             prev_pipes = len(self.pipeline_tail[0].pipe_out)
             if isinstance(step, PdpPipe):
+                # Check if the previous step is a pipe. If it is, skip the pipe
+                if isinstance(self.pipeline_tail, PdpPipe):
+                    print('Warning: Sequential pipes detected. Coalescing into one pipe')
+                    continue
                 # Create a pipe from the existing end of the pipeline to the new step
                 for i in range(prev_steps):
                     temp = deepcopy(step)
