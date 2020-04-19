@@ -76,3 +76,23 @@ class TestPipelineArchitecture(TestCase):
             pl.add(PdpStages.PdpJoin(2))
         self.assertEqual(
             str(e.exception), 'A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
+
+    '''
+    Do not allow ambiguity in inferring how many jobs of each type to create
+    '''
+
+    def test_pipeline_ambiguity(self):
+        def job1(arg):
+            return 'job1'
+        def job2(arg):
+            return 'job2'
+        pl = PdpPipeline.PdpPipeline()
+        pl.add(PdpStages.PdpProcessor(job1))
+        pl.add(PdpStages.PdpReplicatingFork(2))
+        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
+        pl.add(PdpStages.PdpReplicatingFork(4), PdpStages.PdpReplicatingFork(2))
+        pl.add(PdpStages.PdpProcessor(job2), PdpStages.PdpProcessor(job1))
+        with self.assertRaises(Exception) as e:
+            pl.add(PdpStages.PdpJoin(2), PdpStages.PdpJoin(4))
+        self.assertEqual(
+            str(e.exception), 'Ambiguity Error: Partially joining forks')

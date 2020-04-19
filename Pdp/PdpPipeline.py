@@ -2,6 +2,7 @@ from copy import copy, deepcopy
 from math import floor
 from multiprocessing import Process, Queue
 from .PdpStages import PdpProcessor, PdpPipe, PdpFork, PdpBalancingFork, PdpReplicatingFork, PdpJoin
+from .PdpSyntaxAnalyzer import PdpSyntaxAnalyzer
 
 
 class PdpPipeline:
@@ -16,6 +17,7 @@ class PdpPipeline:
         self.pipeline_tail[0].pipe_in[0] = q
         self.pipeline_tail[0].pipe_out[0] = q
         self.pipeline_head = self.pipeline_tail
+        self.syntax_analyzer = PdpSyntaxAnalyzer()
 
     # Add a step to the pipeline. The step can be either a pipe or processor
     def add(self, *args):
@@ -76,6 +78,7 @@ class PdpPipeline:
                         s.append(Queue())
                     temp.pipe_out = s
                     parallel.append(temp)
+                    self.syntax_analyzer.push_fork(temp)
             elif isinstance(step, PdpJoin):
                 # Split input queue into several
                 for i in range(floor(prev_steps / step.merges)):
@@ -87,6 +90,13 @@ class PdpPipeline:
                     q = Queue()
                     temp.pipe_out[0] = q
                     parallel.append(temp)
+                    self.syntax_analyzer.check_merge(temp)
+
+        if isinstance(args[0], PdpProcessor) and argc > 1 and argc != prev_steps:
+            self.syntax_analyzer.mark_inference()
+
+        if isinstance(args[0], PdpJoin):
+            self.syntax_analyzer.finalize_merge()
 
         # Complete linking the data structure and advance pipeline_tail
         self.pipeline_tail[0].next = parallel
