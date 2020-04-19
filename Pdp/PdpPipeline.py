@@ -113,7 +113,6 @@ class PdpPipeline:
                             s.append(Queue())
                         temp.pipe_out = s
                         parallel.append(temp)
-                        self.syntax_analyzer.push_fork(temp)
                     step_ptr += int(prev_steps / argc)
                 # Else we have ambiguity on how to allocate forks
                 else:
@@ -131,17 +130,16 @@ class PdpPipeline:
                         q = Queue()
                         temp.pipe_out[0] = q
                         parallel.append(temp)
-                        self.syntax_analyzer.check_merge(temp)
                     step_ptr += int(step.merges * prev_fanout / curr_fanin)
                 # Else we have ambiguity on how to allocate merges
                 else:
                     raise Exception('Ambiguity Error: Merges cannot be divided among fanout of previous step')
 
-        if isinstance(args[0], PdpProcessor) and argc > 1 and argc != prev_steps:
-            self.syntax_analyzer.mark_inference()
+        #if isinstance(args[0], PdpProcessor) and argc > 1 and argc != prev_steps:
+            #self.syntax_analyzer.mark_inference()
 
-        if isinstance(args[0], PdpJoin):
-            self.syntax_analyzer.finalize_merge()
+        #if isinstance(args[0], PdpJoin):
+            #self.syntax_analyzer.finalize_join)
 
         # Complete linking the data structure and advance pipeline_tail
         self.pipeline_tail[0].next = parallel

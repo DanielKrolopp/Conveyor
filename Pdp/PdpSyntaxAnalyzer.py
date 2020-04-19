@@ -17,7 +17,7 @@ class PdpSyntaxAnalyzer:
         self.forks.append(fork.splits)
         self.inference_flag = False
 
-    def check_merge(self, join):
+    def check_join(self, join):
         if len(self.forks) == 0 or not self.inference_flag:
             return
         if self.fork_ptr > len(self.forks):
@@ -40,7 +40,7 @@ class PdpSyntaxAnalyzer:
             self.fork_ptr += 1
             self.remainder_flag = False
 
-    def finalize_merge(self):
+    def finalize_join(self):
         if self.fork_ptr < len(self.forks) or self.remainder_flag:
             raise Exception('Ambiguity Error: More fork fan out than join fan in')
         elif self.fork_ptr > len(self.forks):
