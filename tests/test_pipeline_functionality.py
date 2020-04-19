@@ -1,5 +1,8 @@
 from unittest import TestCase
 from collections import Counter
+import sys
+from threading import Lock
+from time import sleep
 
 from Pdp import PdpPipeline
 from Pdp import PdpStages
@@ -94,34 +97,40 @@ class TestPipelineFunctionality(TestCase):
 
     '''
     Allow a pipeline to run multiple times without error.
-    Note: currently, this hangs on the second run.
+    This should not hang on the second run.
     '''
 
-    def allow_multiple_pipeline_runs(self):
-        def finalize(arg):
-            self.assertEqual(self.counts['string'], self.counts['job2'])
+    def test_allow_multiple_pipeline_runs(self):
 
+        def job(arg):
+            if arg == 'second':
+                self.lock.release()
+
+
+        self.lock = Lock()
         pl = PdpPipeline.PdpPipeline()
+
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(finalize))
-        pl.run(['string'])
-        pl.run(['string'])
+        pl.add(PdpStages.PdpProcessor(job))
+        self.lock.acquire()
+        pl.run(['first'])
+        pl.run(['second'])
+        self.lock.acquire(blocking=False)
+        self.assertTrue(self.lock.locked(), 'The second pipeline run was not successful')
 
     '''
     Test forks and joins. 4 messages should come through. 3 of them are
     manipulated along the way.
     '''
 
-    def fork_and_join1(self):
+    def test_fork_and_join1(self):
         self.counts = Counter()
 
         def finalize(arg):
-            self.assertEqual(self.counts['string'], 1)
-            self.assertEqual(self.counts['turing'], 2)
-            self.assertEqual(self.counts['uvring'], 1)
+            return arg
 
         def job(arg):
             stage, string = arg
@@ -142,3 +151,8 @@ class TestPipelineFunctionality(TestCase):
         pl.add(PdpStages.PdpJoin(4))
         pl.add(PdpStages.PdpProcessor(finalize))
         pl.run(['string', 'string'])
+
+        sys.stderr.write('Hey!', self.counts)
+        self.assertEqual(self.counts['string'], 1)
+        self.assertEqual(self.counts['turing'], 2)
+        self.assertEqual(self.counts['uvring'], 1)
