@@ -97,28 +97,29 @@ class TestPipelineFunctionality(TestCase):
 
     '''
     Allow a pipeline to run multiple times without error.
-    Note: currently, this hangs on the second run.
+    This should not hang on the second run.
     '''
 
     def test_allow_multiple_pipeline_runs(self):
 
-        def finalize(arg):
+        def job(arg):
             if arg == 'second':
-                lock.release()
+                self.lock.release()
 
-        lock = Lock()
+
+        self.lock = Lock()
         pl = PdpPipeline.PdpPipeline()
 
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(finalize))
-        lock.acquire()
+        pl.add(PdpStages.PdpProcessor(job))
+        self.lock.acquire()
         pl.run(['first'])
         pl.run(['second'])
-        sleep(1)
-        self.assert_(lock.acquire(blocking=False))
+        self.lock.acquire(blocking=False)
+        self.assertTrue(self.lock.locked(), 'The second pipeline run was not successful')
 
     '''
     Test forks and joins. 4 messages should come through. 3 of them are
