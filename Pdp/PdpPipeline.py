@@ -150,7 +150,7 @@ class PdpPipeline:
                         # Merge several input queues into one
                         temp = deepcopy(step)
                         for j in range(step.merges):
-                            temp.pipe_in.append(self.pipeline_tail[step_ptr + i * step.merges + j].pipe_out[0])
+                            temp.pipe_in[j] = self.pipeline_tail[step_ptr + i * step.merges + j].pipe_out[0]
                         parallel.append(temp)
                         self.syntax_analyzer.check_join(temp)
                     step_ptr += int(step.merges * prev_fanout / curr_fanin)
