@@ -40,20 +40,9 @@ class PdpPipeline:
         if (not self.pipeline_tail) and not isinstance(args[0], PdpProcessor):
             raise Exception('A pipeline must start with a processor!')
 
-        # A PdpProcessor must be preceded by a PdpPipe or PdpFork
-        if isinstance(args[0], PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
+        # All Pdp objects besides PdpPipe must be preceded by a PdpPipe
+        if not isinstance(args[0], PdpPipe) and not isinstance(self.pipeline_tail[0], PdpPipe):
             self.add(PdpPipe())
-            print("Warning: Adding an implicit pipe between two PdpProcessors")
-
-        # A PdpFork must be preceded by a PdpPipe or PdpProcessor
-        if isinstance(args[0], PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-            self.add(PdpPipe())
-            print("Warning: Adding an implicit pipe between a PdpFork and PdpFork/PdpJoin")
-
-        # A PdpJoin must be preceded by a PdpPipe or PdpProcessor
-        if isinstance(args[0], PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-            self.add(PdpPipe())
-            print("Warning: Adding an implicit pipe between a PdpJoin and PdpFork/PdpJoin")
 
         parallel = []
         prev_steps = len(self.pipeline_tail)
@@ -131,13 +120,7 @@ class PdpPipeline:
                     for i in range(int(prev_steps / argc)):
                         # Split input queue into several
                         temp = deepcopy(step)
-                        q = Queue()
-                        self.pipeline_tail[step_ptr + i].pipe_out[0] = q
-                        temp.pipe_in[0] = q
-                        s = []
-                        for j in range(step.splits):
-                            s.append(Queue())
-                        temp.pipe_out = s
+                        temp.pipe_in[0] = self.pipeline_tail[step_ptr + i].pipe_out[0]
                         parallel.append(temp)
                         self.syntax_analyzer.push_fork(temp)
                     step_ptr += int(prev_steps / argc)
@@ -150,12 +133,8 @@ class PdpPipeline:
                     for i in range(int(prev_fanout / curr_fanin)):
                         # Merge several input queues into one
                         temp = deepcopy(step)
-                        m = [Queue()] * step.merges
-                        temp.pipe_in = m
                         for j in range(step.merges):
-                            self.pipeline_tail[step_ptr + i * step.merges + j].pipe_out[0] = temp.pipe_in[j]
-                        q = Queue()
-                        temp.pipe_out[0] = q
+                            temp.pipe_in.append(self.pipeline_tail[step_ptr + i * step.merges + j].pipe_out[0])
                         parallel.append(temp)
                         self.syntax_analyzer.check_join(temp)
                     step_ptr += int(step.merges * prev_fanout / curr_fanin)
