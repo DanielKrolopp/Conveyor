@@ -49,6 +49,7 @@ class PdpPipeline:
         prev_steps = len(self.pipeline_tail)
         step_ptr = 0
         pipe_ptr = 0
+        fork_ptr = 0
         prev_fanout = 0
         curr_fanin = 0
 
@@ -117,7 +118,8 @@ class PdpPipeline:
                     prev_forks = len(self.active_fork)
                     index = step_ptr
                     for i in range(int(prev_forks / argc)):
-                        prev_pipes = len(self.active_fork[step_ptr + i].pipe_out)
+                        prev_pipes = len(self.active_fork[fork_ptr].pipe_out)
+                        fork_ptr += 1
                         for j in range(prev_pipes):
                             temp = deepcopy(step)
                             temp.pipe_in[0] = self.pipeline_tail[index].pipe_out[0]
