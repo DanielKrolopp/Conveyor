@@ -7,22 +7,22 @@ class PdpSyntaxAnalyzer:
     def __init__(self):
         self.forks = []
         self.fork_ptr = 0
-        self.explicit_flag = False
+        self.implicit_flag = False
         self.remainder_flag = False
 
-    def mark_explicit(self):
-        self.explicit_flag = True
+    def mark_implicit(self):
+        self.implicit_flag = True
 
     def initialize_fork(self):
         self.forks = []
         self.fork_ptr = 0
-        self.explicit_flag = False
+        self.implicit_flag = False
 
     def push_fork(self, fork):
         self.forks.append(fork.splits)
 
     def check_join(self, join):
-        if len(self.forks) == 0 or self.explicit_flag:
+        if len(self.forks) == 0 or not self.implicit_flag:
             return
         if self.fork_ptr > len(self.forks):
             raise Exception('Ambiguity Error: More fork fan out than join fan in')
@@ -45,11 +45,11 @@ class PdpSyntaxAnalyzer:
             self.remainder_flag = False
 
     def finalize_join(self):
-        if not self.explicit_flag:
+        if self.implicit_flag:
             if self.fork_ptr < len(self.forks) or self.remainder_flag:
                 raise Exception('Ambiguity Error: More fork fan out than join fan in')
             elif self.fork_ptr > len(self.forks):
                 raise Exception('Ambiguity Error: More join fan in than fork fan out')
         self.forks = []
         self.fork_ptr = 0
-        self.explicit_flag = False
+        self.implicit_flag = False

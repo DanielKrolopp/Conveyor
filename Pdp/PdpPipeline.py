@@ -18,6 +18,7 @@ class PdpPipeline:
         self.pipeline_tail[0].pipe_out[0] = q
         self.pipeline_head = self.pipeline_tail
         self.syntax_analyzer = PdpSyntaxAnalyzer()
+        self.active_fork = None
 
     # Add a step to the pipeline. The step can be either a pipe or processor
     def add(self, *args):
@@ -91,17 +92,8 @@ class PdpPipeline:
                 if not callable(step.job):
                     raise Exception('Invalid type! Pipeline processors must have a valid job!')
 
-                # If number of objects in previous step can be evenly divided into job groups, do that
-                if prev_steps % argc == 0:
-                    for i in range(int(prev_steps / argc)):
-                        prev_pipes = len(self.pipeline_tail[step_ptr + i].pipe_out)
-                        for j in range(prev_pipes):
-                            temp = deepcopy(step)
-                            temp.pipe_in[0] = self.pipeline_tail[step_ptr + i].pipe_out[j]
-                            parallel.append(temp)
-                    step_ptr += int(prev_steps / argc)
                 # Else if enough jobs were given to explicitly assign one job to each pipe output, do that
-                elif prev_fanout == argc:
+                if prev_fanout == argc:
                     temp = deepcopy(step)
                     temp.pipe_in[0] = self.pipeline_tail[step_ptr].pipe_out[pipe_ptr]
                     parallel.append(temp)
@@ -110,6 +102,28 @@ class PdpPipeline:
                         pipe_ptr = 0
                     else:
                         pipe_ptr += 1
+
+                # If number of objects in previous step can be evenly divided into job groups, do that
+                elif self.active_fork is None and prev_steps % argc == 0:
+                    for i in range(int(prev_steps / argc)):
+                        temp = deepcopy(step)
+                        temp.pipe_in[0] = self.pipeline_tail[step_ptr + i].pipe_out[0]
+                        parallel.append(temp)
+                    step_ptr += int(prev_steps / argc)
+
+                # If there was a fork previously in the pipeline with no join between it and this step,
+                # split jobs based on fork
+                elif self.active_fork is not None and len(self.active_fork) % argc == 0:
+                    prev_forks = len(self.active_fork)
+                    index = step_ptr
+                    for i in range(int(prev_forks / argc)):
+                        prev_pipes = len(self.active_fork[step_ptr + i].pipe_out)
+                        for j in range(prev_pipes):
+                            temp = deepcopy(step)
+                            temp.pipe_in[0] = self.pipeline_tail[index].pipe_out[0]
+                            parallel.append(temp)
+                            index += 1
+                    step_ptr = index
                 # Else we have ambiguity on how to divide the jobs (might be able to make some inferences)
                 else:
                     raise Exception('Ambiguity Error: Jobs cannot be divided among fanout of previous step')
@@ -142,11 +156,15 @@ class PdpPipeline:
                 else:
                     raise Exception('Ambiguity Error: Merges cannot be divided among fanout of previous step')
 
-        if (isinstance(args[0], PdpProcessor) and argc == prev_fanout) or isinstance(args[0], PdpPipe):
-            self.syntax_analyzer.mark_explicit()
+        if isinstance(args[0], PdpProcessor) and argc != prev_fanout:
+            self.syntax_analyzer.mark_implicit()
+
+        if isinstance(args[0], PdpFork):
+            self.active_fork = parallel
 
         if isinstance(args[0], PdpJoin):
             self.syntax_analyzer.finalize_join()
+            self.active_fork = None
 
         # Complete linking the data structure and advance pipeline_tail
         self.pipeline_tail[0].next = parallel
