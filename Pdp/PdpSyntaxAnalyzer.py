@@ -7,18 +7,18 @@ class PdpSyntaxAnalyzer:
     def __init__(self):
         self.forks = []
         self.fork_ptr = 0
-        self.inference_flag = False
+        self.explicit_flag = False
         self.remainder_flag = False
 
-    def mark_inference(self):
-        self.inference_flag = True
+    def mark_explicit(self):
+        self.explicit_flag = True
 
     def push_fork(self, fork):
         self.forks.append(fork.splits)
-        self.inference_flag = False
+        self.explicit_flag = False
 
     def check_join(self, join):
-        if len(self.forks) == 0 or not self.inference_flag:
+        if len(self.forks) == 0 or self.explicit_flag:
             return
         if self.fork_ptr > len(self.forks):
             raise Exception('Ambiguity Error: More join fan in than fork fan out')
@@ -47,4 +47,4 @@ class PdpSyntaxAnalyzer:
             raise Exception('Ambiguity Error: More join fan in than fork fan out')
         self.forks = []
         self.fork_ptr = 0
-        self.inference_flag = False
+        self.explicit_flag = False
