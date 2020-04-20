@@ -70,13 +70,6 @@ class PdpPipeline:
                     print('Warning: Sequential pipes detected. Coalescing into one pipe')
                     continue
                 # Create a pipe from the existing end of the pipeline to the new step
-                for i in range(int(prev_fanout / argc)):
-                    temp = deepcopy(step)
-                    q = Queue()
-                    self.pipeline_tail[i].pipe_out[0] = q
-                    temp.pipe_in[0] = q
-                    temp.pipe_out[0] = q
-                    parallel.append(temp)
                 for i in range(int(prev_steps)):
                     prev_pipes = len(self.pipeline_tail[i].pipe_out)
                     for j in range(prev_pipes):
