@@ -13,15 +13,19 @@ class PdpSyntaxAnalyzer:
     def mark_explicit(self):
         self.explicit_flag = True
 
+    def initialize_fork(self):
+        self.forks = []
+        self.fork_ptr = 0
+        self.explicit_flag = False
+
     def push_fork(self, fork):
         self.forks.append(fork.splits)
-        self.explicit_flag = False
 
     def check_join(self, join):
         if len(self.forks) == 0 or self.explicit_flag:
             return
         if self.fork_ptr > len(self.forks):
-            raise Exception('Ambiguity Error: More join fan in than fork fan out')
+            raise Exception('Ambiguity Error: More fork fan out than join fan in')
         self.forks[self.fork_ptr] -= join.merges
         remainder = self.forks[self.fork_ptr]
         if self.remainder_flag and remainder < 0:

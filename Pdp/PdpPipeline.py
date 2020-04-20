@@ -32,6 +32,8 @@ class PdpPipeline:
         curr_fanin = 0
         for prev in self.pipeline_tail:
             prev_fanout += len(prev.pipe_out)
+        if isinstance(args[0], PdpFork):
+            self.syntax_analyzer.initialize_fork()
         if isinstance(args[0], PdpJoin):
             for curr in args:
                 curr_fanin += curr.merges
