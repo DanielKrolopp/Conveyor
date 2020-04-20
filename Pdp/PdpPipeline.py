@@ -22,49 +22,62 @@ class PdpPipeline:
     # Add a step to the pipeline. The step can be either a pipe or processor
     def add(self, *args):
 
-        # Check for valid steps in the pipeline
-        parallel = []
         argc = len(args)
+
+        if argc == 0:
+            raise Exception('Invalid arguments! Function requires non-empty input!')
+
+        # Check for valid steps in the pipeline
+        if not isinstance(args[0], (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
+            raise Exception('Invalid type! Pipelines must include only PDP types!')
+
+        # Check for valid steps in the pipeline
+        for arg in args:
+            if not isinstance(arg, type(args[0])):
+                raise Exception('Invalid syntax! All Pdp objects in step must be in same subclass')
+
+        # A pipeline must start with a processor
+        if (not self.pipeline_tail) and not isinstance(args[0], PdpProcessor):
+            raise Exception('A pipeline must start with a processor!')
+
+        # A PdpProcessor must be preceded by a PdpPipe or PdpFork
+        if isinstance(args[0], PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
+            self.add(PdpPipe())
+            print("Warning: Adding an implicit pipe between two PdpProcessors")
+
+        # A PdpFork must be preceded by a PdpPipe or PdpProcessor
+        if isinstance(args[0], PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+            self.add(PdpPipe())
+            print("Warning: Adding an implicit pipe between a PdpFork and PdpFork/PdpJoin")
+
+        # A PdpJoin must be preceded by a PdpPipe or PdpProcessor
+        if isinstance(args[0], PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
+            self.add(PdpPipe())
+            print("Warning: Adding an implicit pipe between a PdpJoin and PdpFork/PdpJoin")
+
+        parallel = []
         prev_steps = len(self.pipeline_tail)
         step_ptr = 0
         pipe_ptr = 0
         prev_fanout = 0
         curr_fanin = 0
+        
         for prev in self.pipeline_tail:
             prev_fanout += len(prev.pipe_out)
+
         if isinstance(args[0], PdpFork):
             self.syntax_analyzer.initialize_fork()
+
         if isinstance(args[0], PdpJoin):
             for curr in args:
                 curr_fanin += curr.merges
+
         for s in range(len(args)):
             step = args[s]
-            if not isinstance(step, (PdpPipe, PdpProcessor, PdpFork, PdpJoin)):
-                raise Exception(
-                    'Invalid type! Pipelines must include only PDP types!')
-
-            # A pipeline must start with a processor
-            if (not self.pipeline_tail) and not isinstance(step, PdpProcessor):
-                raise Exception('A pipeline must start with a processor!')
 
             # No need to iterate through more than one PdpPipe
             if isinstance(step, PdpPipe) and (s > 0):
                 break
-
-            # A PdpProcessor must be preceded by a PdpPipe or PdpFork
-            if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
-                self.add(PdpPipe())
-                print("Warning: Adding an implicit pipe between two PdpProcessors")
-
-            # A PdpFork must be preceded by a PdpPipe or PdpProcessor
-            if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                self.add(PdpPipe())
-                print("Warning: Adding an implicit pipe between a PdpFork and PdpFork/PdpJoin")
-
-            # A PdpJoin must be preceded by a PdpPipe or PdpProcessor
-            if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                self.add(PdpPipe())
-                print("Warning: Adding an implicit pipe between a PdpJoin and PdpFork/PdpJoin")
 
             self.num_steps += 1
 
