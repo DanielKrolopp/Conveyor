@@ -54,15 +54,17 @@ class PdpPipeline:
             # A PdpProcessor must be preceded by a PdpPipe or PdpFork
             if isinstance(step, PdpProcessor) and not isinstance(self.pipeline_tail[0], (PdpPipe, PdpFork, PdpJoin)):
                 self.add(PdpPipe())
-                print("Warning: Adding an implicit pipe between a PdpProcessor and PdpFork/PdpJoin")
+                print("Warning: Adding an implicit pipe between two PdpProcessors")
 
             # A PdpFork must be preceded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpFork) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                raise Exception('A PdpFork must be preceded by a PdpProcessor or PdpPipe!')
+                self.add(PdpPipe())
+                print("Warning: Adding an implicit pipe between a PdpFork and PdpFork/PdpJoin")
 
             # A PdpJoin must be preceded by a PdpPipe or PdpProcessor
             if isinstance(step, PdpJoin) and not isinstance(self.pipeline_tail[0], (PdpProcessor, PdpPipe)):
-                raise Exception('A PdpJoin must be preceded by a PdpProcessor or PdpPipe!')
+                self.add(PdpPipe())
+                print("Warning: Adding an implicit pipe between a PdpJoin and PdpFork/PdpJoin")
 
             self.num_steps += 1
 
