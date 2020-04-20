@@ -73,8 +73,7 @@ class TestPipelineFunctionality(TestCase):
     '''
     Test replicating forks---make sure that the same number of jobs are assigned to each side.
     '''
-    # TODO: This hangs
-    def replicating_forks(self):
+    def test_replicating_forks(self):
         self.counts = Counter()
 
         def job1(arg):
@@ -92,6 +91,7 @@ class TestPipelineFunctionality(TestCase):
         pl.add(PdpStages.PdpJoin(2))
         pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([False, False])
+        print(pl)
 
         self.assertEqual(self.counts['job1'], self.counts['job2'])
 
