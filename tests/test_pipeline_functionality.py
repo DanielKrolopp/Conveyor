@@ -126,7 +126,7 @@ class TestPipelineFunctionality(TestCase):
     manipulated along the way.
     '''
 
-    def test_fork_and_join1(self):
+    def fork_and_join1(self):
         self.counts = Counter()
 
         def finalize(arg):

@@ -61,7 +61,7 @@ class PdpPipeline:
         pipe_ptr = 0
         prev_fanout = 0
         curr_fanin = 0
-        
+
         for prev in self.pipeline_tail:
             prev_fanout += len(prev.pipe_out)
 
