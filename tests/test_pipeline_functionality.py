@@ -152,7 +152,6 @@ class TestPipelineFunctionality(TestCase):
         pl.add(PdpStages.PdpProcessor(finalize))
         pl.run(['string', 'string'])
 
-        sys.stderr.write('Hey!', self.counts)
         self.assertEqual(self.counts['string'], 1)
         self.assertEqual(self.counts['turing'], 2)
         self.assertEqual(self.counts['uvring'], 1)
