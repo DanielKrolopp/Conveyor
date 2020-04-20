@@ -45,10 +45,11 @@ class PdpSyntaxAnalyzer:
             self.remainder_flag = False
 
     def finalize_join(self):
-        if self.fork_ptr < len(self.forks) or self.remainder_flag:
-            raise Exception('Ambiguity Error: More fork fan out than join fan in')
-        elif self.fork_ptr > len(self.forks):
-            raise Exception('Ambiguity Error: More join fan in than fork fan out')
+        if not self.explicit_flag:
+            if self.fork_ptr < len(self.forks) or self.remainder_flag:
+                raise Exception('Ambiguity Error: More fork fan out than join fan in')
+            elif self.fork_ptr > len(self.forks):
+                raise Exception('Ambiguity Error: More join fan in than fork fan out')
         self.forks = []
         self.fork_ptr = 0
         self.explicit_flag = False
