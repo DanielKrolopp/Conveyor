@@ -47,35 +47,11 @@ class TestPipelineArchitecture(TestCase):
 
         pl = PdpPipeline.PdpPipeline()
 
-        # Pipe (should be allowed)
-        try:
-            pl.add(PdpStages.PdpBalancingFork(2))
-        except Exception as e:
-            self.fail('Should not raise an exception: ' + str(e))
-
-        # Balancing fork (should be allowed)
-        try:
-            pl.add(PdpStages.PdpBalancingFork(2))
-        except Exception as e:
-            self.fail('Should not raise an exception: ' + str(e))
-
-        # Replicating fork (should be allowed)
-        try:
-            pl.add(PdpStages.PdpReplicatingFork(2))
-        except Exception as e:
-            self.fail('Should not raise an exception: ' + str(e))
-
-        # Processor (should be allowed)
-        try:
-            pl.add(PdpStages.PdpProcessor(finalize))
-        except Exception as e:
-            self.fail('Should not raise an exception: ' + str(e))
-
         # Join (should not be allowed at pipeline head)
         with self.assertRaises(Exception) as e:
             pl.add(PdpStages.PdpJoin(2))
         self.assertEqual(
-            str(e.exception), 'A PdpJoin must be preceeded by a PdpProcessor or PdpPipe!')
+            str(e.exception), 'A pipeline cannot start with a Join (nothing to join to!)')
 
     '''
     Do not allow ambiguity in inferring how many jobs of each type to create
@@ -84,13 +60,15 @@ class TestPipelineArchitecture(TestCase):
     def test_pipeline_ambiguity(self):
         def job1(arg):
             return 'job1'
+
         def job2(arg):
             return 'job2'
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpProcessor(job1))
         pl.add(PdpStages.PdpReplicatingFork(2))
         pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
-        pl.add(PdpStages.PdpReplicatingFork(4), PdpStages.PdpReplicatingFork(2))
+        pl.add(PdpStages.PdpReplicatingFork(4),
+               PdpStages.PdpReplicatingFork(2))
         pl.add(PdpStages.PdpProcessor(job2), PdpStages.PdpProcessor(job1))
         with self.assertRaises(Exception) as e:
             pl.add(PdpStages.PdpJoin(2), PdpStages.PdpJoin(4))

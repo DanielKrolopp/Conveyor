@@ -126,33 +126,36 @@ class TestPipelineFunctionality(TestCase):
     manipulated along the way.
     '''
 
-    # TODO: Hangs, also probably doesn't run test as aspected. Add test_ to front when fixed
-    def fork_and_join1(self):
+    def test_fork_and_join1(self):
         self.counts = Counter()
 
-        def finalize(arg):
-            return arg
+        def count(arg):
+            _, string = arg
+            self.counts[string] += 1
+            if len(self.counts) == 4:
+                self.assertEqual(self.counts['ttring'], 1)
+                self.assertEqual(self.counts['turing'], 1)
+                self.assertEqual(self.counts['suring'], 1)
+                self.assertEqual(self.counts['string'], 1)
 
-        def job(arg):
+        def dont_manipulate(arg):
+            stage, string = arg
+            return (stage + 1, string)
+
+        def manipulate(arg):
             stage, string = arg
             l = list(string)
             l[stage] = chr(ord(l[stage]) + 1)
             return (stage + 1, ''.join(l))
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(job))
-        pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpBalancingFork(2))
         pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(job),
-               PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpProcessor(manipulate),
+               PdpStages.PdpProcessor(dont_manipulate))
         pl.add(PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg),
-             PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate),
+             PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate))
         pl.add(PdpStages.PdpJoin(4))
-        pl.add(PdpStages.PdpProcessor(finalize))
-        pl.run(['string', 'string'])
-
-        self.assertEqual(self.counts['string'], 1)
-        self.assertEqual(self.counts['turing'], 2)
-        self.assertEqual(self.counts['uvring'], 1)
+        pl.add(PdpStages.PdpProcessor(count))
+        pl.run([(0, 'string'), (0, 'string')])

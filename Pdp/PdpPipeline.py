@@ -37,9 +37,9 @@ class PdpPipeline:
             if not isinstance(arg, type(args[0])):
                 raise Exception('Invalid syntax! All Pdp objects in step must be in same subclass')
 
-        # A pipeline must start with a processor
-        if (not self.pipeline_tail) and not isinstance(args[0], PdpProcessor):
-            raise Exception('A pipeline must start with a processor!')
+        # A pipeline cannot start with a Join (nothing to join to!)
+        if self.num_steps < 1 and isinstance(args[0], PdpJoin):
+            raise Exception('A pipeline cannot start with a Join (nothing to join to!)')
 
         # All Pdp objects besides PdpPipe must be preceded by a PdpPipe
         if not isinstance(args[0], PdpPipe) and not isinstance(self.pipeline_tail[0], PdpPipe):

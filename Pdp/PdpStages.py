@@ -13,12 +13,10 @@ class PdpPipe(PdpStep):
         super(PdpPipe, self).__init__()
 
     def finalize(self):
-        print('Finalizing')
         while True:
             in_block = self.pipe_in[0].get()
-            # If block is "magic value" of none
+            # If block is "magic value" of none, escape
             if in_block is None:
-                print('Final value:', in_block)
                 break
 
 
@@ -74,6 +72,7 @@ class PdpBalancingFork(PdpFork):
                 sys.exit()
             self.pipe_out[self.count].put(in_block)
             self.count = ((self.count + 1) % self.splits)
+
 
 class PdpJoin(PdpStep):
     def __init__(self, merges):
