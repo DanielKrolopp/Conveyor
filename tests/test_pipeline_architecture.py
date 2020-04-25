@@ -3,6 +3,8 @@ from unittest import TestCase
 from Pdp import PdpPipeline
 from Pdp import PdpStages
 
+from . import dummy_return_arg
+
 '''
 Test configurations that are/aren't allowed in the pipeline.
 '''
@@ -74,3 +76,17 @@ class TestPipelineArchitecture(TestCase):
             pl.add(PdpStages.PdpJoin(2), PdpStages.PdpJoin(4))
         self.assertEqual(
             str(e.exception), 'Ambiguity Error: Partially joining forks')
+
+    '''
+    Create a fork and then too many processors to handle
+    '''
+
+    def test_too_many_processors(self):
+        pl = PdpPipeline.PdpPipeline()
+        pl.add(PdpStages.PdpReplicatingFork(2))
+
+        with self.assertRaises(Exception) as e:
+            pl.add(PdpStages.PdpProcessor(dummy_return_arg), PdpStages.PdpProcessor(
+                dummy_return_arg), PdpStages.PdpProcessor(dummy_return_arg))
+        self.assertEqual(
+            str(e.exception), 'Ambiguity Error: Jobs cannot be divided among fanout of previous stage')

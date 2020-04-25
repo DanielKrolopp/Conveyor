@@ -1,14 +1,14 @@
 import sys
 
 
-class PdpStep:
+class PdpStage:
     def __init__(self):
         self.pipe_in = [None]
         self.pipe_out = [None]
         self.next = [None]
 
 
-class PdpPipe(PdpStep):
+class PdpPipe(PdpStage):
     def __init__(self):
         super(PdpPipe, self).__init__()
 
@@ -20,7 +20,7 @@ class PdpPipe(PdpStep):
                 break
 
 
-class PdpProcessor(PdpStep):
+class PdpProcessor(PdpStage):
     def __init__(self, job):
         super(PdpProcessor, self).__init__()
         self.job = job
@@ -35,7 +35,7 @@ class PdpProcessor(PdpStep):
             self.pipe_out[0].put(out_block)
 
 
-class PdpFork(PdpStep):
+class PdpFork(PdpStage):
     def __init__(self, splits):
         super(PdpFork, self).__init__()
         self.pipe_out = [None] * splits
@@ -74,7 +74,7 @@ class PdpBalancingFork(PdpFork):
             self.count = ((self.count + 1) % self.splits)
 
 
-class PdpJoin(PdpStep):
+class PdpJoin(PdpStage):
     def __init__(self, merges):
         super(PdpJoin, self).__init__()
         self.pipe_in = [None] * merges
