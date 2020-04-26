@@ -113,7 +113,8 @@ class PdpPipeline:
                             # If previous step is a pipe, use its queue instead
                             if isinstance(self.pipeline_tail[i], PdpPipe):
                                 q = self.pipeline_tail[i].pipe_out[j]
-                            self.pipeline_tail[i].pipe_out[j] = q
+                            else:
+                                self.pipeline_tail[i].pipe_out[j] = q
                             temp.pipe_in[0] = q
                             temp.pipe_out[0] = q
                             parallel.append(temp)
