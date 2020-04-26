@@ -41,16 +41,27 @@ class PdpPipeline:
             if not isinstance(arg, type(step_arg)):
                 if isinstance(step_arg, PdpPipe):
                     step_arg = arg
-                elif not isinstance(arg, PdpPipe):
-                    raise Exception('Invalid types! All non PdpPipe objects in stage must be in same subclass')
+                    if isinstance(step_arg, PdpProcessor):
+                        mixed_step = True
+                        new_args.append(arg)
+                    elif isinstance(step_arg, PdpFork):
+                        new_args[0] = PdpFork(1)
+                        new_args.append(arg)
+                    elif isinstance(step_arg, PdpJoin):
+                        new_args[0] = PdpJoin(1)
+                        new_args.append(arg)
 
-                if isinstance(step_arg, PdpProcessor):
-                    mixed_step = True
-                    new_args.append(PdpPipe())
-                elif isinstance(step_arg, PdpFork):
-                    new_args.append(PdpFork(1))
-                elif isinstance(step_arg, PdpJoin):
-                    new_args.append(PdpJoin(1))
+                elif isinstance(arg, PdpPipe):
+                    if isinstance(step_arg, PdpProcessor):
+                        mixed_step = True
+                        new_args.append(PdpPipe())
+                    elif isinstance(step_arg, PdpFork):
+                        new_args.append(PdpFork(1))
+                    elif isinstance(step_arg, PdpJoin):
+                        new_args.append(PdpJoin(1))
+
+                else:
+                    raise Exception('Invalid types! All non PdpPipe objects in stage must be in same subclass')
             else:
                 new_args.append(arg)
         args = new_args
