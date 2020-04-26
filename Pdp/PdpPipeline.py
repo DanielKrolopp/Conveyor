@@ -42,7 +42,7 @@ class PdpPipeline:
                 if isinstance(step_arg, PdpPipe):
                     step_arg = arg
                 elif not isinstance(arg, PdpPipe):
-                    raise Exception('Invalid syntax! All Pdp objects in stage must be in same subclass')
+                    raise Exception('Invalid types! All non PdpPipe objects in stage must be in same subclass')
 
                 if isinstance(step_arg, PdpProcessor):
                     mixed_step = True
@@ -59,8 +59,10 @@ class PdpPipeline:
             raise Exception('A pipeline cannot start with a Join (nothing to join to!)')
 
         # All Pdp objects besides PdpPipe must be preceded by a PdpPipe
-        if not isinstance(args[0], PdpPipe) and not isinstance(self.pipeline_tail[0], PdpPipe):
-            self.add(PdpPipe())
+        if not isinstance(step_arg, PdpPipe):
+            for prev_step in self.pipeline_tail:
+                if not isinstance(prev_step, PdpPipe):
+                    self.add(PdpPipe())
 
         parallel = []
         prev_stages = len(self.pipeline_tail)
