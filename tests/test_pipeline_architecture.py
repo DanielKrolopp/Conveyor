@@ -164,7 +164,7 @@ class TestPipelineArchitecture(TestCase):
         def count(arg):
             _, string = arg
             self.counts[string] += 1
-            if len(self.counts) == 2:
+            if len(self.counts) == 3:
                 self.assertEqual(self.counts['string'], 1)
                 self.assertEqual(self.counts['suring'], 1)
                 self.assertEqual(self.counts['turing'], 1)
