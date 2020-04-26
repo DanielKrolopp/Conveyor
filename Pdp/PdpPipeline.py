@@ -33,10 +33,27 @@ class PdpPipeline:
             raise Exception('Invalid type! Pipelines must include only PDP types!')
 
         # Check for valid stages in the pipeline
-        for arg in args:
-            if not isinstance(arg, type(args[0])):
-                raise Exception('Invalid syntax! All Pdp objects in stage must be in same subclass')
+        mixed_step = False
+        new_args = []
+        step_arg = args[0]
+        for i in range(len(args)):
+            arg = args[i]
+            if not isinstance(arg, type(step_arg)):
+                if isinstance(step_arg, PdpPipe):
+                    step_arg = arg
+                elif not isinstance(arg, PdpPipe):
+                    raise Exception('Invalid syntax! All Pdp objects in stage must be in same subclass')
 
+                if isinstance(step_arg, PdpProcessor):
+                    mixed_step = True
+                    new_args.append(PdpPipe)
+                elif isinstance(step_arg, PdpFork):
+                    new_args.append(PdpFork(1))
+                elif isinstance(step_arg, PdpJoin):
+                    new_args.append(PdpJoin(1))
+            else:
+                new_args.append(arg)
+        args = new_args
         # A pipeline cannot start with a Join (nothing to join to!)
         if self.num_stages < 1 and isinstance(args[0], PdpJoin):
             raise Exception('A pipeline cannot start with a Join (nothing to join to!)')
@@ -56,37 +73,93 @@ class PdpPipeline:
         for prev in self.pipeline_tail:
             prev_fanout += len(prev.pipe_out)
 
+        for curr in args:
+            curr_fanin += len(curr.pipe_in)
+
         if isinstance(args[0], PdpFork):
             self.syntax_analyzer.initialize_fork()
-
-        if isinstance(args[0], PdpJoin):
-            for curr in args:
-                curr_fanin += curr.merges
 
         for s in range(len(args)):
             stage = args[s]
 
-            # No need to iterate through more than one PdpPipe
-            if isinstance(stage, PdpPipe) and (s > 0):
+            # No need to iterate through more than one PdpPipe if only pipes in this step
+            if isinstance(stage, PdpPipe) and not mixed_step and (s > 0):
                 break
 
             self.num_stages += 1
 
             if isinstance(stage, PdpPipe):
-                # Check if the previous stage is a pipe. If it is, skip the pipe
-                if isinstance(self.pipeline_tail, PdpPipe):
-                    print('Warning: Sequential pipes detected. Coalescing into one pipe')
-                    continue
                 # Create a pipe from the existing end of the pipeline to the new stage
-                for i in range(int(prev_stages)):
-                    prev_pipes = len(self.pipeline_tail[i].pipe_out)
-                    for j in range(prev_pipes):
+                if not mixed_step:
+                    for i in range(int(prev_stages)):
+                        prev_pipes = len(self.pipeline_tail[i].pipe_out)
+                        for j in range(prev_pipes):
+                            temp = deepcopy(stage)
+                            q = Queue()
+                            # If previous step is a pipe, use its queue instead
+                            if isinstance(self.pipeline_tail[i], PdpPipe):
+                                q = self.pipeline_tail[i].pipe_out[j]
+                            self.pipeline_tail[i].pipe_out[j] = q
+                            temp.pipe_in[0] = q
+                            temp.pipe_out[0] = q
+                            parallel.append(temp)
+
+                elif prev_fanout == curr_fanin:
+                    temp = deepcopy(stage)
+                    q = Queue()
+                    # If previous step is a pipe, use its queue instead
+                    if isinstance(self.pipeline_tail[stage_ptr], PdpPipe):
+                        q = self.pipeline_tail[stage_ptr].pipe_out[pipe_ptr]
+                    else:
+                        self.pipeline_tail[stage_ptr].pipe_out[pipe_ptr] = q
+                    temp.pipe_in[0] = q
+                    temp.pipe_out[0] = q
+                    parallel.append(temp)
+                    if pipe_ptr + 1 == len(self.pipeline_tail[stage_ptr].pipe_out):
+                        stage_ptr += 1
+                        pipe_ptr = 0
+                    else:
+                        pipe_ptr += 1
+
+                # If number of objects in previous stage can be evenly divided into pipe groups, do that
+                elif self.active_fork is None and prev_stages % curr_fanin == 0:
+                    for i in range(int(prev_stages / curr_fanin)):
                         temp = deepcopy(stage)
                         q = Queue()
-                        self.pipeline_tail[i].pipe_out[j] = q
+                        # If previous step is a pipe, use its queue instead
+                        if isinstance(self.pipeline_tail[stage_ptr + i], PdpPipe):
+                            q = self.pipeline_tail[stage_ptr + i].pipe_out[0]
+                        else:
+                            self.pipeline_tail[stage_ptr + i].pipe_out[0] = q
                         temp.pipe_in[0] = q
                         temp.pipe_out[0] = q
                         parallel.append(temp)
+                    stage_ptr += int(prev_stages / curr_fanin)
+
+                # If there was a fork previously in the pipeline with no join between it and this stage,
+                # split pipes based on fork
+                elif self.active_fork is not None and len(self.active_fork) % curr_fanin == 0:
+                    prev_forks = len(self.active_fork)
+                    index = stage_ptr
+                    for i in range(int(prev_forks / curr_fanin)):
+                        prev_pipes = len(self.active_fork[fork_ptr].pipe_out)
+                        fork_ptr += 1
+                        for j in range(prev_pipes):
+                            temp = deepcopy(stage)
+                            q = Queue()
+                            # If previous step is a pipe, use its queue instead
+                            if isinstance(self.pipeline_tail[index], PdpPipe):
+                                q = self.pipeline_tail[index].pipe_out[0]
+                            else:
+                                self.pipeline_tail[index].pipe_out[0] = q
+                            temp.pipe_in[0] = q
+                            temp.pipe_out[0] = q
+                            parallel.append(temp)
+                            index += 1
+                    stage_ptr = index
+                # Else we have ambiguity on how to divide the pipes
+                else:
+                    raise Exception('Ambiguity Error: Pipes cannot be divided among fanout of previous stage')
 
             elif isinstance(stage, PdpProcessor):
                 # Ensure job is a real function
@@ -94,7 +167,7 @@ class PdpPipeline:
                     raise Exception('Invalid type! Pipeline processors must have a valid job!')
 
                 # Else if enough jobs were given to explicitly assign one job to each pipe output, do that
-                if prev_fanout == argc:
+                if prev_fanout == curr_fanin:
                     temp = deepcopy(stage)
                     temp.pipe_in[0] = self.pipeline_tail[stage_ptr].pipe_out[pipe_ptr]
                     parallel.append(temp)
@@ -105,19 +178,19 @@ class PdpPipeline:
                         pipe_ptr += 1
 
                 # If number of objects in previous stage can be evenly divided into job groups, do that
-                elif self.active_fork is None and prev_stages % argc == 0:
-                    for i in range(int(prev_stages / argc)):
+                elif self.active_fork is None and prev_stages % curr_fanin == 0:
+                    for i in range(int(prev_stages / curr_fanin)):
                         temp = deepcopy(stage)
                         temp.pipe_in[0] = self.pipeline_tail[stage_ptr + i].pipe_out[0]
                         parallel.append(temp)
-                    stage_ptr += int(prev_stages / argc)
+                    stage_ptr += int(prev_stages / curr_fanin)
 
                 # If there was a fork previously in the pipeline with no join between it and this stage,
                 # split jobs based on fork
-                elif self.active_fork is not None and len(self.active_fork) % argc == 0:
+                elif self.active_fork is not None and len(self.active_fork) % curr_fanin == 0:
                     prev_forks = len(self.active_fork)
                     index = stage_ptr
-                    for i in range(int(prev_forks / argc)):
+                    for i in range(int(prev_forks / curr_fanin)):
                         prev_pipes = len(self.active_fork[fork_ptr].pipe_out)
                         fork_ptr += 1
                         for j in range(prev_pipes):
@@ -132,14 +205,14 @@ class PdpPipeline:
 
             elif isinstance(stage, PdpFork):
                 # If number of objects in previous stage can be evenly divided into forking groups, do that
-                if prev_stages % argc == 0:
-                    for i in range(int(prev_stages / argc)):
+                if prev_stages % curr_fanin == 0:
+                    for i in range(int(prev_stages / curr_fanin)):
                         # Split input queue into several
                         temp = deepcopy(stage)
                         temp.pipe_in[0] = self.pipeline_tail[stage_ptr + i].pipe_out[0]
                         parallel.append(temp)
                         self.syntax_analyzer.push_fork(temp)
-                    stage_ptr += int(prev_stages / argc)
+                    stage_ptr += int(prev_stages / curr_fanin)
                 # Else we have ambiguity on how to allocate forks
                 else:
                     raise Exception('Ambiguity Error: Forks cannot be divided among fanout of previous stage')
@@ -158,7 +231,7 @@ class PdpPipeline:
                 else:
                     raise Exception('Ambiguity Error: Merges cannot be divided among fanout of previous stage')
 
-        if isinstance(args[0], PdpProcessor) and argc != prev_fanout:
+        if isinstance(args[0], PdpProcessor) and curr_fanin != prev_fanout:
             self.syntax_analyzer.mark_implicit()
 
         if isinstance(args[0], PdpFork):
