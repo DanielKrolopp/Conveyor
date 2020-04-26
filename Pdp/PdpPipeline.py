@@ -46,7 +46,7 @@ class PdpPipeline:
 
                 if isinstance(step_arg, PdpProcessor):
                     mixed_step = True
-                    new_args.append(PdpPipe)
+                    new_args.append(PdpPipe())
                 elif isinstance(step_arg, PdpFork):
                     new_args.append(PdpFork(1))
                 elif isinstance(step_arg, PdpJoin):
@@ -63,6 +63,7 @@ class PdpPipeline:
             for prev_step in self.pipeline_tail:
                 if not isinstance(prev_step, PdpPipe):
                     self.add(PdpPipe())
+                    break
 
         parallel = []
         prev_stages = len(self.pipeline_tail)
