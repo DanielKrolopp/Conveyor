@@ -130,7 +130,7 @@ class TestPipelineArchitecture(TestCase):
         def count(arg):
             _, string = arg
             self.counts[string] += 1
-            if len(self.counts) == 2:
+            if len(self.counts) == 4:
                 self.assertEqual(self.counts['ttring'], 2)
                 self.assertEqual(self.counts['string'], 2)
 
