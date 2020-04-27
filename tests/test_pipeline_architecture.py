@@ -102,7 +102,7 @@ class TestPipelineArchitecture(TestCase):
         def count(arg):
             _, string = arg
             self.counts[string] += 1
-            if len(self.counts) == 2:
+            if len(self.counts) == 3:
                 self.assertEqual(self.counts['ttring'], 1)
                 self.assertEqual(self.counts['string'], 2)
 
@@ -117,7 +117,6 @@ class TestPipelineArchitecture(TestCase):
         pl.add(PdpStages.PdpProcessor(manipulate),
                PdpStages.PdpPipe(), PdpStages.PdpPipe())
         pl.add(PdpStages.PdpJoin(3))
-        self.fail("Temporary failure")
         pl.add(PdpStages.PdpProcessor(count))
         pl.run([(0, 'string')])
 
