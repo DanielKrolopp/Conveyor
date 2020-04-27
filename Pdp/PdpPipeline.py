@@ -45,7 +45,7 @@ class PdpPipeline:
                         mixed_step = True
                         new_args.append(arg)
                     elif isinstance(step_arg, PdpFork):
-                        new_args[0] = PdpFork(1)
+                        new_args[0] = PdpReplicatingFork(1)
                         new_args.append(arg)
                     elif isinstance(step_arg, PdpJoin):
                         new_args[0] = PdpJoin(1)
@@ -56,7 +56,7 @@ class PdpPipeline:
                         mixed_step = True
                         new_args.append(PdpPipe())
                     elif isinstance(step_arg, PdpFork):
-                        new_args.append(PdpFork(1))
+                        new_args.append(PdpReplicatingFork(1))
                     elif isinstance(step_arg, PdpJoin):
                         new_args.append(PdpJoin(1))
 
