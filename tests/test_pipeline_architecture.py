@@ -104,8 +104,7 @@ class TestPipelineArchitecture(TestCase):
             self.counts[string] += 1
             if len(self.counts) == 2:
                 self.assertEqual(self.counts['ttring'], 1)
-                if self.counts['string'] != 2:
-                    self.fail("Counted " + str(self.counts['string']) + " instances of string, expected 2")
+                self.assertEqual(self.counts['string'], 2)
 
         def manipulate(arg):
             stage, string = arg
@@ -118,6 +117,7 @@ class TestPipelineArchitecture(TestCase):
         pl.add(PdpStages.PdpProcessor(manipulate),
                PdpStages.PdpPipe(), PdpStages.PdpPipe())
         pl.add(PdpStages.PdpJoin(3))
+        self.fail("Temporary failure")
         pl.add(PdpStages.PdpProcessor(count))
         pl.run([(0, 'string')])
 
