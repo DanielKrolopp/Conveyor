@@ -104,7 +104,8 @@ class TestPipelineArchitecture(TestCase):
             self.counts[string] += 1
             if len(self.counts) == 2:
                 self.assertEqual(self.counts['ttring'], 1)
-                self.assertEqual(self.counts['string'], 2)
+                if self.counts['string'] != 2:
+                    self.fail("Counted " + self.counts['string'] + " instances of string, expected 2")
 
         def manipulate(arg):
             stage, string = arg
