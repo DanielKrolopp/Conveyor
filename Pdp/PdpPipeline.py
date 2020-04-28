@@ -269,8 +269,6 @@ class PdpPipeline:
         if not isinstance(self.pipeline_tail[0], PdpPipe):
             self.add(PdpPipe())
 
-        print('Running a', self.num_stages - 1, 'stage pipeline...')
-
         stages = self.pipeline_head
         while stages[0]:
             for stage in stages:

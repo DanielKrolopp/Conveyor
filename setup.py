@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Python-Data-Pipeline",
+    name="Pdp",
     version="0.0.1",
     author="PDP Team",
     description="A package that makes pipelining Python jobs easier",
