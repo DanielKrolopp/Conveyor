@@ -73,7 +73,6 @@ class TestPipelineFunctionality(TestCase):
     '''
     Test replicating forks---make sure that the same number of jobs are assigned to each side.
     '''
-
     def test_replicating_forks(self):
         self.counts = Counter()
 
@@ -92,33 +91,35 @@ class TestPipelineFunctionality(TestCase):
         pl.add(PdpStages.PdpJoin(2))
         pl.add(PdpStages.PdpProcessor(finalize))
         pl.run([False, False])
+        print(pl)
 
         self.assertEqual(self.counts['job1'], self.counts['job2'])
 
     '''
     Allow a pipeline to run multiple times without error.
-    Note: currently, this hangs on the second run.
+    This should not hang on the second run.
     '''
 
     def test_allow_multiple_pipeline_runs(self):
 
-        def finalize(arg):
+        def job(arg):
             if arg == 'second':
-                lock.release()
+                self.lock.release()
 
-        lock = Lock()
+
+        self.lock = Lock()
         pl = PdpPipeline.PdpPipeline()
 
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpProcessor(dummy_return_arg))
         pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(finalize))
-        lock.acquire()
+        pl.add(PdpStages.PdpProcessor(job))
+        self.lock.acquire()
         pl.run(['first'])
         pl.run(['second'])
-        sleep(1)
-        self.assert_(lock.acquire(blocking=False))
+        self.lock.acquire(blocking=False)
+        self.assertTrue(self.lock.locked(), 'The second pipeline run was not successful')
 
     '''
     Test forks and joins. 4 messages should come through. 3 of them are
@@ -128,30 +129,33 @@ class TestPipelineFunctionality(TestCase):
     def test_fork_and_join1(self):
         self.counts = Counter()
 
-        def finalize(arg):
-            return arg
+        def count(arg):
+            _, string = arg
+            self.counts[string] += 1
+            if len(self.counts) == 4:
+                self.assertEqual(self.counts['ttring'], 1)
+                self.assertEqual(self.counts['turing'], 1)
+                self.assertEqual(self.counts['suring'], 1)
+                self.assertEqual(self.counts['string'], 1)
 
-        def job(arg):
+        def dont_manipulate(arg):
+            stage, string = arg
+            return (stage + 1, string)
+
+        def manipulate(arg):
             stage, string = arg
             l = list(string)
             l[stage] = chr(ord(l[stage]) + 1)
             return (stage + 1, ''.join(l))
 
         pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(job))
-        pl.add(PdpStages.PdpPipe())
         pl.add(PdpStages.PdpBalancingFork(2))
         pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(job),
-               PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpProcessor(manipulate),
+               PdpStages.PdpProcessor(dont_manipulate))
         pl.add(PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg),
-             PdpStages.PdpProcessor(job), PdpStages.PdpProcessor(dummy_return_arg))
+        pl.add(PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate),
+             PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate))
         pl.add(PdpStages.PdpJoin(4))
-        pl.add(PdpStages.PdpProcessor(finalize))
-        pl.run(['string', 'string'])
-
-        sys.stderr.write('Hey!', self.counts)
-        self.assertEqual(self.counts['string'], 1)
-        self.assertEqual(self.counts['turing'], 2)
-        self.assertEqual(self.counts['uvring'], 1)
+        pl.add(PdpStages.PdpProcessor(count))
+        pl.run([(0, 'string'), (0, 'string')])
