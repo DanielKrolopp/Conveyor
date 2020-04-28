@@ -28,7 +28,8 @@ def evaluate(model, model_name, val_X, val_y, labels):
         index=['actual: ' + label for label in labels],
         columns=['predicted: ' + label for label in labels]
     )
-    precision, recall, fbeta, _ = precision_recall_fscore_support(val_y, y_predictions, average='weighted')
+    precision, recall, fbeta, _ = precision_recall_fscore_support(
+        val_y, y_predictions, average='weighted')
 
     print('\n\n----------', model_name, '----------\n')
     print('\n', cmtx, '\n\n')
@@ -58,7 +59,7 @@ def main():
         X = df.drop(columns=['classification'])
         y = df.classification
 
-        train_X, val_X, train_y, val_y = train_test_split(X, y, random_state = 0)
+        train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=0)
 
         for model, name in zip(models, model_names):
             model.fit(train_X, train_y)
