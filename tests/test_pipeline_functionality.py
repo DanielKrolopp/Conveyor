@@ -1,8 +1,6 @@
 from unittest import TestCase
 from collections import Counter
-import sys
 from threading import Lock
-from time import sleep
 
 from conveyor.pipeline import Pipeline
 from conveyor.stages import Pipe, Processor, BalancingFork, ReplicatingFork, Join

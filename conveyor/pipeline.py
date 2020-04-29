@@ -1,7 +1,6 @@
-from copy import copy, deepcopy
-from math import floor
+from copy import deepcopy
 from multiprocessing import Process, Queue
-from .stages import Processor, Pipe, Fork, BalancingFork, ReplicatingFork, Join
+from .stages import Processor, Pipe, _Fork, ReplicatingFork, Join
 from .syntax_analyzer import SyntaxAnalyzer
 
 
@@ -29,7 +28,7 @@ class Pipeline:
             raise Exception('Invalid arguments! Function requires non-empty input!')
 
         # Check for valid stages in the pipeline
-        if not isinstance(args[0], (Pipe, Processor, Fork, Join)):
+        if not isinstance(args[0], (Pipe, Processor, _Fork, Join)):
             raise Exception('Invalid type! Pipelines must include only Conveyor types!')
 
         # Check for valid stages in the pipeline
@@ -44,7 +43,7 @@ class Pipeline:
                     if isinstance(step_arg, Processor):
                         mixed_step = True
                         new_args.append(arg)
-                    elif isinstance(step_arg, Fork):
+                    elif isinstance(step_arg, _Fork):
                         new_args[0] = ReplicatingFork(1)
                         new_args.append(arg)
                     elif isinstance(step_arg, Join):
@@ -55,7 +54,7 @@ class Pipeline:
                     if isinstance(step_arg, Processor):
                         mixed_step = True
                         new_args.append(Pipe())
-                    elif isinstance(step_arg, Fork):
+                    elif isinstance(step_arg, _Fork):
                         new_args.append(ReplicatingFork(1))
                     elif isinstance(step_arg, Join):
                         new_args.append(Join(1))
@@ -90,7 +89,7 @@ class Pipeline:
         for curr in args:
             curr_fanin += len(curr.pipe_in)
 
-        if isinstance(args[0], Fork):
+        if isinstance(args[0], _Fork):
             self.syntax_analyzer.initialize_fork()
 
         for s in range(len(args)):
@@ -218,7 +217,7 @@ class Pipeline:
                 else:
                     raise Exception('Ambiguity Error: Jobs cannot be divided among fanout of previous stage')
 
-            elif isinstance(stage, Fork):
+            elif isinstance(stage, _Fork):
                 # If number of objects in previous stage can be evenly divided into forking groups, do that
                 if prev_stages % curr_fanin == 0:
                     for i in range(int(prev_stages / curr_fanin)):
@@ -249,7 +248,7 @@ class Pipeline:
         if isinstance(args[0], Processor) and curr_fanin != prev_fanout:
             self.syntax_analyzer.mark_implicit()
 
-        if isinstance(args[0], Fork):
+        if isinstance(args[0], _Fork):
             self.active_fork = parallel
 
         if isinstance(args[0], Join):
@@ -280,7 +279,7 @@ class Pipeline:
                     if stages == self.pipeline_tail:
                         p = Process(target=stage.finalize)
                         p.start()
-                elif isinstance(stage, Fork):
+                elif isinstance(stage, _Fork):
                     # Display final results
                     p = Process(target=stage.fork)
                     p.start()

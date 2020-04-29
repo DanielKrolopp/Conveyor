@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from conveyor.pipeline import Pipeline
-from conveyor.stages import Processor, Pipe, ReplicatingFork, BalancingFork, Join
+from conveyor.stages import Processor, Pipe, _Fork, ReplicatingFork, BalancingFork, Join
 
 from collections import Counter
 from . import dummy_return_arg
@@ -232,3 +232,14 @@ class TestPipelineArchitecture(TestCase):
             pl.add(Join(2), BalancingFork(2))
         self.assertEqual(
             str(e.exception), 'Invalid types! All non Pipe objects in stage must be in same subclass')
+
+    '''
+    Disallow end users from trying to use _Fork abstract class
+    '''
+
+    def test_disallow_abstract_Fork(self):
+        pl = Pipeline()
+        with self.assertRaises(Exception) as e:
+            pl.add(_Fork(2))
+        self.assertEqual(
+            str(e.exception), '_Fork is an abstract class. Use ReplicatingFork or BalancingFork instead.')

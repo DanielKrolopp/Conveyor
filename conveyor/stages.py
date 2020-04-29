@@ -35,9 +35,12 @@ class Processor(Stage):
             self.pipe_out[0].put(out_block)
 
 
-class Fork(Stage):
+class _Fork(Stage):
     def __init__(self, splits):
-        super(Fork, self).__init__()
+        super(_Fork, self).__init__()
+        if type(self) == _Fork:
+            raise Exception(
+                '_Fork is an abstract class. Use ReplicatingFork or BalancingFork instead.')
         self.pipe_out = [None] * splits
         self.splits = splits
         self.count = 0
@@ -46,7 +49,7 @@ class Fork(Stage):
         return 0
 
 
-class ReplicatingFork(Fork):
+class ReplicatingFork(_Fork):
     def __init__(self, splits):
         super(ReplicatingFork, self).__init__(splits)
 
@@ -59,7 +62,7 @@ class ReplicatingFork(Fork):
                 sys.exit()
 
 
-class BalancingFork(Fork):
+class BalancingFork(_Fork):
     def __init__(self, splits):
         super(BalancingFork, self).__init__(splits)
 

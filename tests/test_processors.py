@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from conveyor.pipeline import Pipeline
-from conveyor.stages import Pipe, Processor
+from conveyor.stages import Processor
 
 '''
 Test processors
