@@ -70,20 +70,22 @@ class ConnectedComponent:
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
             for i in range(30000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(30000):
-                for j in range(i + 1, 30000):
+            for i in range(10000):
+                count = 0
+                for k in primes:
+                    if i % k == 0:
+                        count += 1
+                        if count > 1:
+                            break
+                if count != 1:
+                    continue
+                for j in range(i + 1, 10000):
                     count = 0
                     for k in primes:
-                        if (i % k == 0) and (j % k == 0):
+                        if j % k == 0:
                             count += 1
                             if count > 1:
                                 break
-                        if (i % k == 0) and not (j % k == 0):
-                            count = 2
-                            break
-                        if not (i % k == 0) and (j % k == 0):
-                            count = 2
-                            break
                     if count == 1:
                         graph[i].get("neighbors").append(j)
                         graph[j].get("neighbors").append(i)
