@@ -67,14 +67,16 @@ class ConnectedComponent:
 
         def create_input():
             graph = []
-            primes = [2, 3, 5, 7, 11, 13, 17, 19]
+            primes = [2, 5, 11, 17]
             for i in range(1000):
                 graph.append({"vertex": i, "neighbors": []})
                 for j in range(1000):
+                    count = 0
                     for k in primes:
                         if (i % k == 0) and (j % k == 0):
-                            graph[len(graph) - 1].get("neighbors").append(j)
-                            break
+                            count += 1
+                    if count == 1:
+                        graph[len(graph) - 1].get("neighbors").append(j)
             for i in range(8):
                 graph.append({"vertex": -1, "neighbors": []})
             return graph
