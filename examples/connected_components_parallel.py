@@ -6,40 +6,39 @@ import math
 class ConnectedComponentsParallel:
 
     def __init__(self, processors):
-        self.partition = []
+        self.partition = {}
         self.union_find = []
         self.count = 0
         self.processors = processors
 
-        def grow_spanning_tree(current_component, neighbors, usable_nodes):
+        def grow_spanning_tree(current_component, neighbors, usable_nodes, added_nodes):
             for neighbor in neighbors:
-                if current_component.count(neighbor) == 0:
+                if neighbor not in added_nodes:
                     current_component.append(neighbor)
-                if usable_nodes.count(neighbor) > 0:
-                    for node in self.partition:
-                        if node.get("vertex") == neighbor:
-                            self.partition.remove(node)
-                            usable_nodes.remove(neighbor)
-                            grow_spanning_tree(current_component, node.get("neighbors"), usable_nodes)
-                            break
+                    added_nodes[neighbor] = 1
+                if usable_nodes[neighbor] == 1:
+                    usable_nodes[neighbor] = 0
+                    grow_spanning_tree(current_component, self.partition[neighbor], usable_nodes, added_nodes)
 
         def create_spanning_tree(arg):
             if arg.get("vertex") != -1:
-                self.partition.append(arg)
+                self.partition[arg.get("vertex")] = arg.get("neighbors")
                 return [-1]
             else:
-                usable_nodes = []
-                for node in self.partition:
-                    usable_nodes.append(node.get("vertex"))
+                usable_nodes = {}
+                for node in self.partition.keys():
+                    usable_nodes[node] = 1
                 components = []
                 total_nodes = len(self.partition)
                 count = 0
                 while count < total_nodes:
+                    added_nodes = {}
                     current_component = []
-                    current_node = self.partition.pop()
-                    usable_nodes.remove(current_node.get("vertex"))
-                    current_component.append(current_node.get("vertex"))
-                    grow_spanning_tree(current_component, current_node.get("neighbors"), usable_nodes)
+                    current_node = self.partition.popitem()
+                    added_nodes[current_node[0]] = 1
+                    usable_nodes[current_node[0]] = 0
+                    current_component.append(current_node[0])
+                    grow_spanning_tree(current_component, current_node[1], usable_nodes, added_nodes)
                     components.append(current_component)
                     count += len(current_component)
                 return components
