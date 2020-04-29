@@ -62,19 +62,21 @@ class ConnectedComponent:
                 for i in range(len(self.union_find)):
                     components[self.union_find[i]].append(i)
                 for component in components:
-                    if component:
+                    if component and len(component) > 1:
                         print(str(component))
 
         def create_input():
             graph = []
-            primes = [2, 5, 11, 17]
-            for i in range(1000):
+            primes = [7, 11, 13, 17, 19, 23, 29, 31]
+            for i in range(100000):
                 graph.append({"vertex": i, "neighbors": []})
-                for j in range(1000):
+                for j in range(100000):
                     count = 0
                     for k in primes:
                         if (i % k == 0) and (j % k == 0):
                             count += 1
+                            if count > 1:
+                                break
                         if (i % k == 0) and not (j % k == 0):
                             count = 2
                             break
