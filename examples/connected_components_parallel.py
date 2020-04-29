@@ -108,9 +108,9 @@ class ConnectedComponent:
         pl.run(graph)
 
 
-ConnectedComponent(5000)
-ConnectedComponent(10000)
-ConnectedComponent(20000)
-ConnectedComponent(40000)
+ConnectedComponent(5120)
+ConnectedComponent(10240)
+ConnectedComponent(20480)
+ConnectedComponent(40960)
 
 
