@@ -21,7 +21,7 @@ class ConnectedComponent:
                             break
 
         def create_spanning_tree(arg):
-            if arg:
+            if arg.get("vertex") != -1:
                 self.partition.append(arg)
             else:
                 usable_nodes = []
@@ -38,6 +38,7 @@ class ConnectedComponent:
                     grow_spanning_tree(current_component, current_node.get("neighbors"), usable_nodes)
                     components.append(current_component)
                     count += len(current_component)
+                components.append([])
                 return components
 
         def merge_connected_component(arg):
@@ -65,6 +66,8 @@ class ConnectedComponent:
                 for j in range(1000):
                     if math.pow((i * j * (i + j)), 2) % 13 == 3:
                         graph[len(graph) - 1].get("neighbors").append(j)
+            for i in range(8):
+                graph.append({"vertex": -1, "neighbors": []})
             return graph
 
         pl = PdpPipeline.PdpPipeline()
