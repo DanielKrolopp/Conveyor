@@ -5,7 +5,7 @@ import math
 
 class ConnectedComponent:
 
-    def __init__(self):
+    def __init__(self, size):
         self.partition = []
         self.union_find = []
         self.count = 0
@@ -46,7 +46,7 @@ class ConnectedComponent:
 
         def merge_connected_component(arg):
             if arg[0] == -1:
-                return 0
+                return [-1]
             for component in arg:
                 root = component[0]
                 for node in component:
@@ -63,14 +63,14 @@ class ConnectedComponent:
                 for component in components:
                     if component and len(component) > 1:
                         print(str(component))
-            return 0
+            return [-1]
 
         def create_input():
             graph = []
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
-            for i in range(20000):
+            for i in range(size):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(20000):
+            for i in range(size):
                 count = 0
                 prime = 0
                 for k in primes:
@@ -81,7 +81,7 @@ class ConnectedComponent:
                             break
                 if count != 1:
                     continue
-                for j in range(i + 1, 20000):
+                for j in range(i + 1, size):
                     count = 0
                     for k in primes:
                         if j % k == 0:
@@ -98,13 +98,19 @@ class ConnectedComponent:
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
-        pl.add(PdpStages.PdpJoin(self.processors))
+        pl.add(PdpStages.PdpJoin(self.processors/2),
+               PdpStages.PdpJoin(self.processors/2))
+        pl.add(PdpStages.PdpProcessor(merge_connected_component),
+               PdpStages.PdpProcessor(merge_connected_component))
+        pl.add(PdpStages.PdpJoin(self.processors/2))
         pl.add(PdpStages.PdpProcessor(merge_connected_component))
-
         graph = create_input()
         pl.run(graph)
 
 
-ConnectedComponent()
+ConnectedComponent(5000)
+ConnectedComponent(10000)
+ConnectedComponent(20000)
+ConnectedComponent(40000)
 
 
