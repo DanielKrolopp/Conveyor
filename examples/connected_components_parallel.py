@@ -98,11 +98,11 @@ class ConnectedComponent:
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
-        pl.add(PdpStages.PdpJoin(self.processors/2),
-               PdpStages.PdpJoin(self.processors/2))
+        pl.add(PdpStages.PdpJoin(int(self.processors/2)),
+               PdpStages.PdpJoin(int(self.processors/2)))
         pl.add(PdpStages.PdpProcessor(merge_connected_component),
                PdpStages.PdpProcessor(merge_connected_component))
-        pl.add(PdpStages.PdpJoin(self.processors/2))
+        pl.add(PdpStages.PdpJoin(int(self.processors/2)))
         pl.add(PdpStages.PdpProcessor(merge_connected_component))
         graph = create_input()
         pl.run(graph)
