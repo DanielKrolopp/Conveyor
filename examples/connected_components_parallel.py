@@ -1,6 +1,7 @@
 from Pdp import PdpPipeline
 from Pdp import PdpStages
 import math
+import datetime
 
 
 class ConnectedComponentsParallel:
@@ -56,7 +57,7 @@ class ConnectedComponentsParallel:
                         self.union_find.append(len(self.union_find))
                     self.union_find[node] = self.union_find[root]
             self.count += 1
-            if self.count == self.processors:
+            if self.count == 2:
                 components = []
                 for i in range(len(self.union_find)):
                     components.append([])
@@ -64,15 +65,16 @@ class ConnectedComponentsParallel:
                     components[self.union_find[i]].append(i)
                 for component in components:
                     if component and len(component) > 1:
-                        print(str(component))
+                        # print(str(component))
+                        continue
             return [-1]
 
         def create_input():
             graph = []
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
-            for i in range(10000):
+            for i in range(30000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(10000):
+            for i in range(30000):
                 count = 0
                 prime = 0
                 for k in primes:
@@ -83,7 +85,7 @@ class ConnectedComponentsParallel:
                             break
                 if count != 1:
                     continue
-                for j in range(i + 1, 10000):
+                for j in range(i + 1, 30000):
                     count = 0
                     for k in primes:
                         if j % k == 0:
@@ -97,17 +99,22 @@ class ConnectedComponentsParallel:
                 graph.append({"vertex": -1, "neighbors": []})
             return graph
 
+        start = datetime.datetime.now()
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
-        pl.add(PdpStages.PdpJoin(self.processors))
-        pl.add(PdpStages.PdpProcessor(merge_connected_component))
+        for i in range(int(math.log2(self.processors))):
+            pl.add(PdpStages.PdpJoin(self.processors))
+            pl.add(PdpStages.PdpProcessor(merge_connected_component))
         graph = create_input()
         pl.run(graph)
+        print(datetime.datetime.now() - start)
+
 
 
 ConnectedComponentsParallel(2)
-ConnectedComponentsParallel(4)
-ConnectedComponentsParallel(6)
+#ConnectedComponentsParallel(4)
+#ConnectedComponentsParallel(8)
+#ConnectedComponentsParallel(16)
 
 

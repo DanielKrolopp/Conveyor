@@ -1,38 +1,42 @@
+import datetime
+
 
 class ConnectedComponentsSerial:
 
     def __init__(self):
-        self.partition = []
+        self.partition = {}
 
-        def grow_spanning_tree(current_component, neighbors, usable_nodes):
+        def grow_spanning_tree(current_component, neighbors, usable_nodes, added_nodes):
+            queue = []
             for neighbor in neighbors:
-                if current_component.count(neighbor) == 0:
+                if neighbor not in added_nodes:
                     current_component.append(neighbor)
-                if usable_nodes.count(neighbor) > 0:
-                    for node in self.partition:
-                        if node.get("vertex") == neighbor:
-                            self.partition.remove(node)
-                            usable_nodes.remove(neighbor)
-                            grow_spanning_tree(current_component, node.get("neighbors"), usable_nodes)
-                            break
+                    added_nodes[neighbor] = 1
+                if neighbor in usable_nodes and usable_nodes[neighbor] == 1:
+                    usable_nodes[neighbor] = 0
+                    queue.append(neighbor)
+            for node in queue:
+                grow_spanning_tree(current_component, self.partition[node], usable_nodes, added_nodes)
 
         def create_spanning_tree(arg):
-            self.partition = arg
-            usable_nodes = []
-            for node in self.partition:
-                usable_nodes.append(node.get("vertex"))
+            for node in arg:
+                self.partition[node.get("vertex")] = node.get("neighbors")
+            usable_nodes = {}
+            for node in self.partition.keys():
+                usable_nodes[node] = 1
             components = []
             total_nodes = len(self.partition)
             count = 0
             while count < total_nodes:
+                added_nodes = {}
                 current_component = []
-                current_node = self.partition.pop()
-                usable_nodes.remove(current_node.get("vertex"))
-                current_component.append(current_node.get("vertex"))
-                grow_spanning_tree(current_component, current_node.get("neighbors"), usable_nodes)
+                current_node = self.partition.popitem()
+                added_nodes[current_node[0]] = 1
+                usable_nodes[current_node[0]] = 0
+                current_component.append(current_node[0])
+                grow_spanning_tree(current_component, current_node[1], usable_nodes, added_nodes)
                 components.append(current_component)
                 count += len(current_component)
-            print(components)
             return components
 
         def create_input():
@@ -64,7 +68,9 @@ class ConnectedComponentsSerial:
             return graph
 
         graph = create_input()
+        start = datetime.datetime.now()
         create_spanning_tree(graph)
+        print(datetime.datetime.now() - start)
 
 
 ConnectedComponentsSerial()
