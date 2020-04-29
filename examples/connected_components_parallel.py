@@ -75,6 +75,12 @@ class ConnectedComponent:
                     for k in primes:
                         if (i % k == 0) and (j % k == 0):
                             count += 1
+                        if (i % k == 0) and not (j % k == 0):
+                            count = 2
+                            break
+                        if not (i % k == 0) and (j % k == 0):
+                            count = 2
+                            break
                     if count == 1:
                         graph[len(graph) - 1].get("neighbors").append(j)
             for i in range(8):
