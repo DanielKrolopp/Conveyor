@@ -1,4 +1,5 @@
-from Pdp import PdpPipeline, PdpStages
+from conveyor.pipeline import Pipeline
+from conveyor.stages import Processor, ReplicatingFork
 
 from nltk.util import ngrams  # function for making ngrams
 import pandas as pd
@@ -89,12 +90,12 @@ def generate_ngrams(text):
 
 
 def main():
-    pl = PdpPipeline.PdpPipeline()
-    pl.add(PdpStages.PdpProcessor(generate_ngrams))
-    pl.add(PdpStages.PdpReplicatingFork(3))
-    pl.add(PdpStages.PdpProcessor(train_decision_tree),
-           PdpStages.PdpProcessor(train_random_forest),
-           PdpStages.PdpProcessor(train_k_neighbors))
+    pl = Pipeline()
+    pl.add(Processor(generate_ngrams))
+    pl.add(ReplicatingFork(3))
+    pl.add(Processor(train_decision_tree),
+           Processor(train_random_forest),
+           Processor(train_k_neighbors))
 
     with open("sms_data.txt", "r", encoding='latin-1') as file:
         text = file.read().split('\n')

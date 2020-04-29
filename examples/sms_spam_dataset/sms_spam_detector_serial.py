@@ -39,7 +39,6 @@ def evaluate(model, model_name, val_X, val_y, labels):
 
 
 def main():
-    # this corpus is pretty big, so let's look at just one of the files in it
     with open("sms_data.txt", "r", encoding='latin-1') as file:
         text = file.read().split('\n')
         data = []

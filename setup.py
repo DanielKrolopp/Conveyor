@@ -4,13 +4,13 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="Pdp",
+    name="conveyor",
     version="0.0.1",
-    author="PDP Team",
-    description="A package that makes pipelining Python jobs easier",
+    author="Conveyor Team",
+    description="Simple, intuitive pipelining in Python",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DanielKrolopp/PythonDataPipeline",
+    url="https://github.com/DanielKrolopp/Conveyor",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

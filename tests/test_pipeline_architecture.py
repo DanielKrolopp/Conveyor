@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from Pdp import PdpPipeline
-from Pdp import PdpStages
+from conveyor.pipeline import Pipeline
+from conveyor.stages import Processor, Pipe, ReplicatingFork, BalancingFork, Join
 
 from collections import Counter
 from . import dummy_return_arg
@@ -20,23 +20,23 @@ class TestPipelineArchitecture(TestCase):
         def finalize(arg):
             return True
 
-        pl = PdpPipeline.PdpPipeline()
+        pl = Pipeline()
 
         # String
         with self.assertRaises(Exception) as e:
             pl.add("cookie")
         self.assertEqual(
-            str(e.exception), 'Invalid type! Pipelines must include only PDP types!')
+            str(e.exception), 'Invalid type! Pipelines must include only Conveyor types!')
 
         # List
         with self.assertRaises(Exception) as e:
             pl.add([])
         self.assertEqual(
-            str(e.exception), 'Invalid type! Pipelines must include only PDP types!')
+            str(e.exception), 'Invalid type! Pipelines must include only Conveyor types!')
 
         # Valid processor
         try:
-            pl.add(PdpStages.PdpProcessor(finalize))
+            pl.add(Processor(finalize))
         except Exception:
             self.fail('Should not raise an exception: ' + str(e))
 
@@ -48,11 +48,11 @@ class TestPipelineArchitecture(TestCase):
         def finalize(arg):
             return True
 
-        pl = PdpPipeline.PdpPipeline()
+        pl = Pipeline()
 
         # Join (should not be allowed at pipeline head)
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpJoin(2))
+            pl.add(Join(2))
         self.assertEqual(
             str(e.exception), 'A pipeline cannot start with a Join (nothing to join to!)')
 
@@ -66,15 +66,15 @@ class TestPipelineArchitecture(TestCase):
 
         def job2(arg):
             return 'job2'
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(job1))
-        pl.add(PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
-        pl.add(PdpStages.PdpReplicatingFork(4),
-               PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpProcessor(job2), PdpStages.PdpProcessor(job1))
+        pl = Pipeline()
+        pl.add(Processor(job1))
+        pl.add(ReplicatingFork(2))
+        pl.add(Processor(job1), Processor(job2))
+        pl.add(ReplicatingFork(4),
+               ReplicatingFork(2))
+        pl.add(Processor(job2), Processor(job1))
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpJoin(2), PdpStages.PdpJoin(4))
+            pl.add(Join(2), Join(4))
         self.assertEqual(
             str(e.exception), 'Ambiguity Error: Partially joining forks')
 
@@ -83,12 +83,12 @@ class TestPipelineArchitecture(TestCase):
     '''
 
     def test_too_many_processors(self):
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(2))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
 
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpProcessor(dummy_return_arg), PdpStages.PdpProcessor(
-                dummy_return_arg), PdpStages.PdpProcessor(dummy_return_arg))
+            pl.add(Processor(dummy_return_arg), Processor(
+                dummy_return_arg), Processor(dummy_return_arg))
         self.assertEqual(
             str(e.exception), 'Ambiguity Error: Jobs cannot be divided among fanout of previous stage')
 
@@ -112,12 +112,12 @@ class TestPipelineArchitecture(TestCase):
             l[stage] = chr(ord(l[stage]) + 1)
             return (stage + 1, ''.join(l))
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(3))
-        pl.add(PdpStages.PdpProcessor(manipulate),
-               PdpStages.PdpPipe(), PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpJoin(3))
-        pl.add(PdpStages.PdpProcessor(count))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(3))
+        pl.add(Processor(manipulate),
+               Pipe(), Pipe())
+        pl.add(Join(3))
+        pl.add(Processor(count))
         pl.run([(0, 'string')])
 
     '''
@@ -144,14 +144,14 @@ class TestPipelineArchitecture(TestCase):
             stage, string = arg
             return (stage + 1, string)
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpPipe(), PdpStages.PdpBalancingFork(2))
-        pl.add(PdpStages.PdpProcessor(dont_manipulate),
-               PdpStages.PdpProcessor(manipulate),
-               PdpStages.PdpProcessor(manipulate))
-        pl.add(PdpStages.PdpJoin(3))
-        pl.add(PdpStages.PdpProcessor(count))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
+        pl.add(Pipe(), BalancingFork(2))
+        pl.add(Processor(dont_manipulate),
+               Processor(manipulate),
+               Processor(manipulate))
+        pl.add(Join(3))
+        pl.add(Processor(count))
         pl.run([(0, 'string'), (0, 'string')])
 
     '''
@@ -179,16 +179,16 @@ class TestPipelineArchitecture(TestCase):
             stage, string = arg
             return (stage + 1, string)
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(3))
-        pl.add(PdpStages.PdpProcessor(dont_manipulate),
-               PdpStages.PdpProcessor(dont_manipulate),
-               PdpStages.PdpProcessor(manipulate))
-        pl.add(PdpStages.PdpPipe(), PdpStages.PdpJoin(2))
-        pl.add(PdpStages.PdpProcessor(dont_manipulate),
-               PdpStages.PdpProcessor(manipulate))
-        pl.add(PdpStages.PdpJoin(2))
-        pl.add(PdpStages.PdpProcessor(count))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(3))
+        pl.add(Processor(dont_manipulate),
+               Processor(dont_manipulate),
+               Processor(manipulate))
+        pl.add(Pipe(), Join(2))
+        pl.add(Processor(dont_manipulate),
+               Processor(manipulate))
+        pl.add(Join(2))
+        pl.add(Processor(count))
         pl.run([(0, 'string')])
 
     '''
@@ -199,12 +199,12 @@ class TestPipelineArchitecture(TestCase):
         def job(arg):
             return 'job'
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(2))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpProcessor(job), PdpStages.PdpBalancingFork(2))
+            pl.add(Processor(job), BalancingFork(2))
         self.assertEqual(
-            str(e.exception), 'Invalid types! All non PdpPipe objects in stage must be in same subclass')
+            str(e.exception), 'Invalid types! All non Pipe objects in stage must be in same subclass')
 
     '''
     Processors and joins should not be allowed to mix
@@ -214,21 +214,21 @@ class TestPipelineArchitecture(TestCase):
         def job(arg):
             return 'job'
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(3))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(3))
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpProcessor(job), PdpStages.PdpJoin(2))
+            pl.add(Processor(job), Join(2))
         self.assertEqual(
-            str(e.exception), 'Invalid types! All non PdpPipe objects in stage must be in same subclass')
+            str(e.exception), 'Invalid types! All non Pipe objects in stage must be in same subclass')
 
     '''
     Forks and joins should not be allowed to mix
     '''
 
     def test_fork_join_mix(self):
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpReplicatingFork(3))
+        pl = Pipeline()
+        pl.add(ReplicatingFork(3))
         with self.assertRaises(Exception) as e:
-            pl.add(PdpStages.PdpJoin(2), PdpStages.PdpBalancingFork(2))
+            pl.add(Join(2), BalancingFork(2))
         self.assertEqual(
-            str(e.exception), 'Invalid types! All non PdpPipe objects in stage must be in same subclass')
+            str(e.exception), 'Invalid types! All non Pipe objects in stage must be in same subclass')

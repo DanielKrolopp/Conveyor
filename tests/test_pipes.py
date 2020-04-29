@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from Pdp import PdpPipeline
-from Pdp import PdpStages
+from conveyor.pipeline import Pipeline
+from conveyor.stages import Pipe, Processor
 from . import dummy_return_arg
 
 '''
@@ -15,17 +15,17 @@ class TestPipes(TestCase):
     '''
 
     def test_pipes_connect_to_pipes(self):
-        pl = PdpPipeline.PdpPipeline()
+        pl = Pipeline()
 
         # Pipes can connect to pipes
         try:
-            pl.add(PdpStages.PdpPipe())
+            pl.add(Pipe())
         except Exception:
             self.fail('Should not raise an exception')
 
         # Add another one
         try:
-            pl.add(PdpStages.PdpPipe())
+            pl.add(Pipe())
         except Exception:
             self.fail('Should not raise an exception')
 
@@ -34,17 +34,17 @@ class TestPipes(TestCase):
     '''
 
     def test_implicit_pipes(self):
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(dummy_return_arg))
+        pl = Pipeline()
+        pl.add(Processor(dummy_return_arg))
 
         # Add a second processor
         try:
-            pl.add(PdpStages.PdpProcessor(dummy_return_arg))
+            pl.add(Processor(dummy_return_arg))
         except Exception:
             self.fail('Should not raise an exception')
 
         # Add another one
         try:
-            pl.add(PdpStages.PdpProcessor(dummy_return_arg))
+            pl.add(Processor(dummy_return_arg))
         except Exception:
             self.fail('Should not raise an exception')
