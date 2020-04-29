@@ -1,4 +1,4 @@
-import datetime
+import time
 
 
 class ConnectedComponentsSerial:
@@ -68,9 +68,9 @@ class ConnectedComponentsSerial:
             return graph
 
         graph = create_input()
-        start = datetime.datetime.now()
+        start = time.monotonic()
         create_spanning_tree(graph)
-        print(datetime.datetime.now() - start)
+        print(time.monotonic() - start)
 
 
 ConnectedComponentsSerial()

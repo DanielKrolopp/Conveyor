@@ -1,7 +1,7 @@
 from Pdp import PdpPipeline
 from Pdp import PdpStages
 import math
-import datetime
+import time
 
 
 class ConnectedComponentsParallel:
@@ -99,16 +99,16 @@ class ConnectedComponentsParallel:
                 graph.append({"vertex": -1, "neighbors": []})
             return graph
 
-        start = datetime.datetime.now()
+        start = time.monotonic()
+        graph = create_input()
+        print(time.monotonic() - start)
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
         for i in range(int(math.log2(self.processors))):
             pl.add(PdpStages.PdpJoin(self.processors))
             pl.add(PdpStages.PdpProcessor(merge_connected_component))
-        graph = create_input()
         pl.run(graph)
-        print(datetime.datetime.now() - start)
 
 
 
