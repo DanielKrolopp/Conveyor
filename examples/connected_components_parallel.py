@@ -16,7 +16,7 @@ class ConnectedComponentsParallel:
                 if neighbor not in added_nodes:
                     current_component.append(neighbor)
                     added_nodes[neighbor] = 1
-                if usable_nodes[neighbor] == 1:
+                if neighbor in usable_nodes and usable_nodes[neighbor] == 1:
                     usable_nodes[neighbor] = 0
                     grow_spanning_tree(current_component, self.partition[neighbor], usable_nodes, added_nodes)
 
