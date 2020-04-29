@@ -12,13 +12,16 @@ class ConnectedComponentsParallel:
         self.processors = processors
 
         def grow_spanning_tree(current_component, neighbors, usable_nodes, added_nodes):
+            queue = []
             for neighbor in neighbors:
                 if neighbor not in added_nodes:
                     current_component.append(neighbor)
                     added_nodes[neighbor] = 1
                 if neighbor in usable_nodes and usable_nodes[neighbor] == 1:
                     usable_nodes[neighbor] = 0
-                    grow_spanning_tree(current_component, self.partition[neighbor], usable_nodes, added_nodes)
+                    queue.append(neighbor)
+            for node in queue:
+                grow_spanning_tree(current_component, self.partition[node], usable_nodes, added_nodes)
 
         def create_spanning_tree(arg):
             if arg.get("vertex") != -1:
