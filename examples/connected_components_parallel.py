@@ -9,11 +9,10 @@ class ConnectedComponent:
         self.partition = []
         self.union_find = []
         self.count = 0
-        self.processors = 8
+        self.processors = 4
 
         def grow_spanning_tree(current_component, neighbors, usable_nodes):
             for neighbor in neighbors:
-                # TODO: Still should add to component even if not allowed to traverse
                 if current_component.count(neighbor) == 0:
                     current_component.append(neighbor)
                 if usable_nodes.count(neighbor) > 0:
@@ -47,7 +46,7 @@ class ConnectedComponent:
 
         def merge_connected_component(arg):
             if arg[0] == -1:
-                return
+                return 0
             for component in arg:
                 root = component[0]
                 for node in component:
@@ -64,13 +63,14 @@ class ConnectedComponent:
                 for component in components:
                     if component and len(component) > 1:
                         print(str(component))
+            return 0
 
         def create_input():
             graph = []
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
-            for i in range(30000):
+            for i in range(20000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(10000):
+            for i in range(20000):
                 count = 0
                 prime = 0
                 for k in primes:
@@ -81,7 +81,7 @@ class ConnectedComponent:
                             break
                 if count != 1:
                     continue
-                for j in range(i + 1, 10000):
+                for j in range(i + 1, 20000):
                     count = 0
                     for k in primes:
                         if j % k == 0:
@@ -91,7 +91,7 @@ class ConnectedComponent:
                     if (count == 1) and (j % prime == 0):
                         graph[i].get("neighbors").append(j)
                         graph[j].get("neighbors").append(i)
-            for i in range(8):
+            for i in range(self.processors):
                 graph.append({"vertex": -1, "neighbors": []})
             return graph
 
