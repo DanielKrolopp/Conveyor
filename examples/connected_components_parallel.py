@@ -13,18 +13,21 @@ class ConnectedComponent:
 
         def grow_spanning_tree(current_component, neighbors, usable_nodes):
             for neighbor in neighbors:
+                # TODO: Still should add to component even if not allowed to traverse
+                if current_component.count(neighbor) == 0:
+                    current_component.append(neighbor)
                 if usable_nodes.count(neighbor) > 0:
                     for node in self.partition:
                         if node.get("vertex") == neighbor:
                             self.partition.remove(node)
                             usable_nodes.remove(neighbor)
-                            current_component.append(neighbor)
                             grow_spanning_tree(current_component, node.get("neighbors"), usable_nodes)
                             break
 
         def create_spanning_tree(arg):
             if arg.get("vertex") != -1:
                 self.partition.append(arg)
+                return [-1]
             else:
                 usable_nodes = []
                 for node in self.partition:
@@ -43,6 +46,8 @@ class ConnectedComponent:
                 return components
 
         def merge_connected_component(arg):
+            if arg[0] == -1:
+                return
             for component in arg:
                 root = component[0]
                 for node in component:
