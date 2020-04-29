@@ -3,13 +3,13 @@ from Pdp import PdpStages
 import math
 
 
-class ConnectedComponent:
+class ConnectedComponentsParallel:
 
-    def __init__(self, size):
+    def __init__(self, processors):
         self.partition = []
         self.union_find = []
         self.count = 0
-        self.processors = 4
+        self.processors = processors
 
         def grow_spanning_tree(current_component, neighbors, usable_nodes):
             for neighbor in neighbors:
@@ -68,9 +68,9 @@ class ConnectedComponent:
         def create_input():
             graph = []
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
-            for i in range(size):
+            for i in range(20000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(size):
+            for i in range(20000):
                 count = 0
                 prime = 0
                 for k in primes:
@@ -81,7 +81,7 @@ class ConnectedComponent:
                             break
                 if count != 1:
                     continue
-                for j in range(i + 1, size):
+                for j in range(i + 1, 20000):
                     count = 0
                     for k in primes:
                         if j % k == 0:
@@ -98,19 +98,14 @@ class ConnectedComponent:
         pl = PdpPipeline.PdpPipeline()
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
-        pl.add(PdpStages.PdpJoin(int(self.processors/2)),
-               PdpStages.PdpJoin(int(self.processors/2)))
-        pl.add(PdpStages.PdpProcessor(merge_connected_component),
-               PdpStages.PdpProcessor(merge_connected_component))
-        pl.add(PdpStages.PdpJoin(int(self.processors/2)))
+        pl.add(PdpStages.PdpJoin(self.processors))
         pl.add(PdpStages.PdpProcessor(merge_connected_component))
         graph = create_input()
         pl.run(graph)
 
 
-ConnectedComponent(5120)
-ConnectedComponent(10240)
-ConnectedComponent(20480)
-ConnectedComponent(40960)
+ConnectedComponentsParallel(2)
+ConnectedComponentsParallel(4)
+ConnectedComponentsParallel(6)
 
 
