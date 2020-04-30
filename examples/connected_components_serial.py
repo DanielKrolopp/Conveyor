@@ -45,15 +45,16 @@ class ConnectedComponentsSerial:
                 graph.append({"vertex": i, "neighbors": []})
             for i in range(10000):
                 for j in range(i + 1, 10000):
-                    if (i + j) % 10 == 0:
+                    if (i + j) % 2 == 0:
                         graph[i].get("neighbors").append(j)
                         graph[j].get("neighbors").append(i)
             return graph
 
+        start = time.monotonic()
         graph = create_input()
+        print(time.monotonic() - start)
         start = time.monotonic()
         create_spanning_tree(graph)
-        print(time.monotonic() - start)
 
 
 ConnectedComponentsSerial()
