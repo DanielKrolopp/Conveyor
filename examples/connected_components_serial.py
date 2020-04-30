@@ -42,9 +42,9 @@ class ConnectedComponentsSerial:
         def create_input():
             graph = []
             primes = [7, 11, 13, 17, 19, 23, 29, 31]
-            for i in range(10000):
+            for i in range(30000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(10000):
+            for i in range(30000):
                 count = 0
                 prime = 0
                 for k in primes:
@@ -55,7 +55,7 @@ class ConnectedComponentsSerial:
                             break
                 if count != 1:
                     continue
-                for j in range(i + 1, 10000):
+                for j in range(i + 1, 30000):
                     count = 0
                     for k in primes:
                         if j % k == 0:
