@@ -1,6 +1,5 @@
-from Pdp import PdpPipeline
-from Pdp import PdpStages
-import math
+from conveyor import pipeline
+from conveyor import stages
 import time
 
 
@@ -74,11 +73,11 @@ class ConnectedComponentsParallel:
         start = time.monotonic()
         graph = create_input()
         print(time.monotonic() - start)
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpBalancingFork(self.processors))
-        pl.add(PdpStages.PdpProcessor(create_spanning_tree))
-        pl.add(PdpStages.PdpJoin(self.processors))
-        pl.add(PdpStages.PdpProcessor(merge_connected_component))
+        pl = pipeline.Pipeline()
+        pl.add(stages.BalancingFork(self.processors))
+        pl.add(stages.Processor(create_spanning_tree))
+        pl.add(stages.Join(self.processors))
+        pl.add(stages.Processor(merge_connected_component))
         pl.run(graph)
 
 
