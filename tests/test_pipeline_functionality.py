@@ -1,11 +1,9 @@
 from unittest import TestCase
 from collections import Counter
-import sys
 from threading import Lock
-from time import sleep
 
-from Pdp import PdpPipeline
-from Pdp import PdpStages
+from conveyor.pipeline import Pipeline
+from conveyor.stages import Pipe, Processor, BalancingFork, ReplicatingFork, Join
 from . import dummy_return_arg
 
 
@@ -24,8 +22,8 @@ class TestPipelineFunctionality(TestCase):
         def finalize(arg):
             self.assertEqual(arg, 3)
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(finalize))
+        pl = Pipeline()
+        pl.add(Processor(finalize))
         pl.run([3])
 
     '''
@@ -39,10 +37,10 @@ class TestPipelineFunctionality(TestCase):
         def finalize(arg):
             self.assertEqual(arg, 4)
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpProcessor(job))
-        pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(finalize))
+        pl = Pipeline()
+        pl.add(Processor(job))
+        pl.add(Pipe())
+        pl.add(Processor(finalize))
         pl.run([3])
 
     '''
@@ -61,11 +59,11 @@ class TestPipelineFunctionality(TestCase):
         def finalize(arg):
             self.counts[arg] += 1
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpBalancingFork(2))
-        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
-        pl.add(PdpStages.PdpJoin(2))
-        pl.add(PdpStages.PdpProcessor(finalize))
+        pl = Pipeline()
+        pl.add(BalancingFork(2))
+        pl.add(Processor(job1), Processor(job2))
+        pl.add(Join(2))
+        pl.add(Processor(finalize))
         pl.run([False, False])
 
         self.assertEqual(self.counts['job1'], self.counts['job2'])
@@ -85,11 +83,11 @@ class TestPipelineFunctionality(TestCase):
         def finalize(arg):
             self.counts[arg] += 1
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpBalancingFork(2))
-        pl.add(PdpStages.PdpProcessor(job1), PdpStages.PdpProcessor(job2))
-        pl.add(PdpStages.PdpJoin(2))
-        pl.add(PdpStages.PdpProcessor(finalize))
+        pl = Pipeline()
+        pl.add(BalancingFork(2))
+        pl.add(Processor(job1), Processor(job2))
+        pl.add(Join(2))
+        pl.add(Processor(finalize))
         pl.run([False, False])
         print(pl)
 
@@ -108,13 +106,13 @@ class TestPipelineFunctionality(TestCase):
 
 
         self.lock = Lock()
-        pl = PdpPipeline.PdpPipeline()
+        pl = Pipeline()
 
-        pl.add(PdpStages.PdpProcessor(dummy_return_arg))
-        pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(dummy_return_arg))
-        pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(job))
+        pl.add(Processor(dummy_return_arg))
+        pl.add(Pipe())
+        pl.add(Processor(dummy_return_arg))
+        pl.add(Pipe())
+        pl.add(Processor(job))
         self.lock.acquire()
         pl.run(['first'])
         pl.run(['second'])
@@ -148,14 +146,14 @@ class TestPipelineFunctionality(TestCase):
             l[stage] = chr(ord(l[stage]) + 1)
             return (stage + 1, ''.join(l))
 
-        pl = PdpPipeline.PdpPipeline()
-        pl.add(PdpStages.PdpBalancingFork(2))
-        pl.add(PdpStages.PdpPipe())
-        pl.add(PdpStages.PdpProcessor(manipulate),
-               PdpStages.PdpProcessor(dont_manipulate))
-        pl.add(PdpStages.PdpReplicatingFork(2))
-        pl.add(PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate),
-             PdpStages.PdpProcessor(manipulate), PdpStages.PdpProcessor(dont_manipulate))
-        pl.add(PdpStages.PdpJoin(4))
-        pl.add(PdpStages.PdpProcessor(count))
+        pl = Pipeline()
+        pl.add(BalancingFork(2))
+        pl.add(Pipe())
+        pl.add(Processor(manipulate),
+               Processor(dont_manipulate))
+        pl.add(ReplicatingFork(2))
+        pl.add(Processor(manipulate), Processor(dont_manipulate),
+             Processor(manipulate), Processor(dont_manipulate))
+        pl.add(Join(4))
+        pl.add(Processor(count))
         pl.run([(0, 'string'), (0, 'string')])

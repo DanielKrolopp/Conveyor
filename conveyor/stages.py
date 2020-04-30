@@ -1,16 +1,16 @@
 import sys
 
 
-class PdpStage:
+class Stage:
     def __init__(self):
         self.pipe_in = [None]
         self.pipe_out = [None]
         self.next = [None]
 
 
-class PdpPipe(PdpStage):
+class Pipe(Stage):
     def __init__(self):
-        super(PdpPipe, self).__init__()
+        super(Pipe, self).__init__()
 
     def finalize(self):
         while True:
@@ -20,9 +20,9 @@ class PdpPipe(PdpStage):
                 break
 
 
-class PdpProcessor(PdpStage):
+class Processor(Stage):
     def __init__(self, job):
-        super(PdpProcessor, self).__init__()
+        super(Processor, self).__init__()
         self.job = job
 
     def process(self):
@@ -35,9 +35,12 @@ class PdpProcessor(PdpStage):
             self.pipe_out[0].put(out_block)
 
 
-class PdpFork(PdpStage):
+class _Fork(Stage):
     def __init__(self, splits):
-        super(PdpFork, self).__init__()
+        super(_Fork, self).__init__()
+        if type(self) == _Fork:
+            raise Exception(
+                '_Fork is an abstract class. Use ReplicatingFork or BalancingFork instead.')
         self.pipe_out = [None] * splits
         self.splits = splits
         self.count = 0
@@ -46,9 +49,9 @@ class PdpFork(PdpStage):
         return 0
 
 
-class PdpReplicatingFork(PdpFork):
+class ReplicatingFork(_Fork):
     def __init__(self, splits):
-        super(PdpReplicatingFork, self).__init__(splits)
+        super(ReplicatingFork, self).__init__(splits)
 
     def fork(self):
         while True:
@@ -59,9 +62,9 @@ class PdpReplicatingFork(PdpFork):
                 sys.exit()
 
 
-class PdpBalancingFork(PdpFork):
+class BalancingFork(_Fork):
     def __init__(self, splits):
-        super(PdpBalancingFork, self).__init__(splits)
+        super(BalancingFork, self).__init__(splits)
 
     def fork(self):
         while True:
@@ -74,9 +77,9 @@ class PdpBalancingFork(PdpFork):
             self.count = ((self.count + 1) % self.splits)
 
 
-class PdpJoin(PdpStage):
+class Join(Stage):
     def __init__(self, merges):
-        super(PdpJoin, self).__init__()
+        super(Join, self).__init__()
         self.pipe_in = [None] * merges
         self.merges = merges
         self.count = 0
