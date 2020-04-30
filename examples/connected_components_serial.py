@@ -41,10 +41,10 @@ class ConnectedComponentsSerial:
 
         def create_input():
             graph = []
-            for i in range(15000):
+            for i in range(10000):
                 graph.append({"vertex": i, "neighbors": []})
-            for i in range(15000):
-                for j in range(i + 1, 15000):
+            for i in range(10000):
+                for j in range(i + 1, 10000):
                     if (i + j) % 2 == 0:
                         graph[i].get("neighbors").append(j)
                         graph[j].get("neighbors").append(i)
