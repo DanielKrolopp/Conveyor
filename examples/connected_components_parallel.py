@@ -106,7 +106,7 @@ class ConnectedComponentsParallel:
         pl.add(PdpStages.PdpBalancingFork(self.processors))
         pl.add(PdpStages.PdpProcessor(create_spanning_tree))
         for i in range(int(math.log2(self.processors))):
-            pl.add(PdpStages.PdpJoin(self.processors))
+            pl.add(PdpStages.PdpJoin(2))
             pl.add(PdpStages.PdpProcessor(merge_connected_component))
         pl.run(graph)
 
