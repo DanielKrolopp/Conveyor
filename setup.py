@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="conveyor",
+    name="parallel-conveyor",
     version="0.0.1",
     author="Conveyor Team",
     description="Simple, intuitive pipelining in Python",
