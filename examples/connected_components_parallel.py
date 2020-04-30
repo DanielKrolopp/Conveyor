@@ -56,17 +56,6 @@ class ConnectedComponentsParallel:
                     while node >= len(self.union_find):
                         self.union_find.append(len(self.union_find))
                     self.union_find[node] = self.union_find[root]
-            self.count += 1
-            if self.count == 2:
-                components = []
-                for i in range(len(self.union_find)):
-                    components.append([])
-                for i in range(len(self.union_find)):
-                    components[self.union_find[i]].append(i)
-                for component in components:
-                    if component and len(component) > 1:
-                        # print(str(component))
-                        continue
             return [-1]
 
         def create_input():
