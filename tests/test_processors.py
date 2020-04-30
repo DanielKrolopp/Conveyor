@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from conveyor.pipeline import Pipeline
 from conveyor.stages import Processor
-from conveyor import shared_memory_name
+from conveyor import common_memory
 
 from multiprocessing import shared_memory
 from time import sleep
@@ -43,7 +43,7 @@ class TestProcessors(TestCase):
     def test_processor_shared_memory(self):
    
         def worker1_task(args):
-          shmem = shared_memory.SharedMemory(name=shared_memory_name)
+          shmem = shared_memory.SharedMemory(name=common_memory)
           buffer = shmem.buf
           buffer[:4] = bytearray([00, 11, 22, 33])
           shmem.close()
@@ -51,7 +51,7 @@ class TestProcessors(TestCase):
           return args
 
         def worker2_task(args):
-          shmem = shared_memory.SharedMemory(name=shared_memory_name)
+          shmem = shared_memory.SharedMemory(name=common_memory)
           buffer = shmem.buf
           buffer[0] = 44
           shmem.close()
@@ -59,7 +59,7 @@ class TestProcessors(TestCase):
           return args
 
         def cleanup_task(args):
-          shmem = shared_memory.SharedMemory(name=shared_memory_name)
+          shmem = shared_memory.SharedMemory(name=common_memory)
           import array
           print(array.array('b', shmem.buf[:4]))
           assert shmem.buf[0] == 44

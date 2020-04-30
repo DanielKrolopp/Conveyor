@@ -2,7 +2,7 @@ from copy import deepcopy
 from multiprocessing import Process, Queue
 from .stages import Processor, Pipe, _Fork, ReplicatingFork, Join
 from .syntax_analyzer import SyntaxAnalyzer
-from . import shared_memory_name
+from . import common_memory
 
 class Pipeline:
     def __init__(self, shared_memory_amt=0):
@@ -27,8 +27,8 @@ class Pipeline:
             except ImportError:
                 raise Exception('Multiprocessing shared_memory module is not available. Are you using Python 3.8+ ?')
             else:
-                global shared_memory_name
-                shared_memory_handle = shared_memory.SharedMemory(name=shared_memory_name, create=True, size=shared_memory_amt)
+                global common_memory
+                shared_memory_handle = shared_memory.SharedMemory(name=common_memory, create=True, size=shared_memory_amt)
                 shared_memory_handle.close()
 
 
