@@ -2,10 +2,10 @@ from copy import deepcopy
 from multiprocessing import Process, Queue
 from .stages import Processor, Pipe, _Fork, ReplicatingFork, Join
 from .syntax_analyzer import SyntaxAnalyzer
-
+from . import shared_memory_name
 
 class Pipeline:
-    def __init__(self):
+    def __init__(self, shared_memory_amt=0):
 
         # Create a dummy Pipe to start as the head. We should also probably
         # make a Pipe as the tail too. The dummy head allows us to have
@@ -18,6 +18,20 @@ class Pipeline:
         self.pipeline_head = self.pipeline_tail
         self.syntax_analyzer = SyntaxAnalyzer()
         self.active_fork = None
+
+        # initiate shared memory if it is requested
+        if shared_memory_amt > 0:
+            # Ensure we are using python 3.8+ which has shared memory
+            try:
+                from multiprocessing import shared_memory
+            except ImportError:
+                raise Exception('Multiprocessing shared_memory module is not available. Are you using Python 3.8+ ?')
+            else:
+                global shared_memory_name
+                shared_memory_handle = shared_memory.SharedMemory(name=shared_memory_name, create=True, size=shared_memory_amt)
+                shared_memory_handle.close()
+
+
 
     # Add a stage to the pipeline. The stage can be either a pipe or processor
     def add(self, *args):
