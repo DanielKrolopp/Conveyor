@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="parallel-conveyor",
-    version="0.0.1",
+    version="0.0.2",
     author="Conveyor Team",
     description="Simple, intuitive pipelining in Python",
     long_description=long_description,
@@ -18,5 +18,5 @@ setuptools.setup(
     ],
     test_suite='nose.collector',
     tests_require=['nose'],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )
