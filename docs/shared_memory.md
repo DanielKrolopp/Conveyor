@@ -38,26 +38,26 @@ def worker1_task(args):
     return args
 
 def worker2_task(args):
-	shmem = shared_memory.SharedMemory(name=common_memory)
-	buffer = shmem.buf
-	buffer[0] = 44
-	shmem.close()
+    shmem = shared_memory.SharedMemory(name=common_memory)
+    buffer = shmem.buf
+    buffer[0] = 44
+    shmem.close()
 
-	return args
+    return args
 
 def cleanup_task(args):
-	shmem = shared_memory.SharedMemory(name=common_memory)
-	import array
-	print(array.array('b', shmem.buf[:4]))
-	assert shmem.buf[0] == 44
-	assert shmem.buf[1] == 11
-	assert shmem.buf[2] == 22
-	assert shmem.buf[3] == 33
+    shmem = shared_memory.SharedMemory(name=common_memory)
+    import array
+    print(array.array('b', shmem.buf[:4]))
+    assert shmem.buf[0] == 44
+    assert shmem.buf[1] == 11
+    assert shmem.buf[2] == 22
+    assert shmem.buf[3] == 33
 
-	shmem.close()
-	shmem.unlink()
+    shmem.close()
+    shmem.unlink()
 
-	return args
+    return args
 
 pl = Pipeline(shared_memory_amt=10)
 pl.add(Processor(worker1_task))
