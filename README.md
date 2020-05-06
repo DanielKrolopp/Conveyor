@@ -1,35 +1,77 @@
-# Conveyor - simple, intuitive pipelining
-Conveyor is a multiprocessing framework to facilitate writing data pipelines and job systems in Python. The Conveyor provides five main features a developer can make use of: __processors, pipes, replicated forks, balanced forks__  and __joins__.
+# Conveyor - Intuitive Python pipelines
 
-### Processors
-__Processors__ are the Conveyor's logical compute cores. Each processor will take in some data as input, transform that input and optionally return an output. Processors can maintain an internal state. Each of these processors is user-defined and wrapped in its own Python instance, allowing parallel execution of multiple processors at the same time. A user can specify sets of processors that should execute serially as joined by pipes or sets of processors that should act in parallel as defined by forks.
+Conveyor is a multiprocessing framework for creating intuitive data pipelines. With Conveyor, you can easily create stream-based pipelines to efficiently perform a series of operations on data, a task especially useful in the fields of machine learning and scientific computing. Creating a pipelined job is as easy as writing a function.
 
-### Pipes
-__Pipes__ serve as links between processors. They act as a stream, transporting data from one point in the pipeline to another. Pipes are implemented as a producer-consumer buffer where a leading processor acts as the producer and a trailing processor acts as a consumer.
+### Why use Conveyor?
+The answer is simple: throughput.  It's like putting a second load of laundry in the washer while a previous load is in the dryer. By breaking down a problem into smaller serial tasks, we perform the smaller tasks in parallel and increase the efficiency of whatever problem we're trying to solve.
 
-### Replicated Forks
-__Replicated Forks__ allow one processor to split output data into multiple copies so that multiple processors can then perform operations using the entire output data. This will allow multiple different ML models to be trained and tested in parallel. The input-output numbering of the many-to-one relationship of forks is primarily user defined.
+### Installation
+Install Conveyor with `pip install parallel-conveyor`.
 
-### Balanced Forks
-__Balanced Forks__ allow one processor to balance a stream of data over multiple consumer processors. This will serve to minimize the effect of pipe stalling for larger data sets. The input-output numbering of the many-to-one relationship of forks is primarily determined by pipe stalling detected at runtime and the number of physical cores available.
+### A quick and trivial example
 
-### Joins
-__Joins__ allow multiple processors to combine their data streams into one logical pipe. The combined stream can then be forked again for the next step of the pipeline, processed by a single processor, or serve as output at the end of the pipeline.
+Let's say we wanted to build a short pipeline that computed the fourth root of a number (done in two steps) and the cube of a number (in one step). In this case, we would describe this pipeline visually as such:
 
-# Rules for constructing pipelines
-In order to allow developers to use the pipeline however they see fit, Conveyor attempts to be unopinionated, however there must be some rules to keep the pipelines from becoming nonsensical or a programming language of it's own. The pipeline should be kept simple and most of the program's logic should be done in the processor steps.
-- All elements in the pipeline must be Conveyor Types
-- A Pipeline must start with a process
-- If not starting the pipeline, every Processor must be preceded by a Pipe, Fork, or Join
-    - If a Pipe is not explicitly created, it will be automatically inserted, however a warning will be raised
-- Every Fork and Join must be preceded by a pipe
+![Schematic](https://parallel-conveyor.readthedocs.io/en/latest/_images/Fork-and-join.png)
 
-# Testing
+To express it with Conveyor, we simply build the pipeline as follows
+
+```python
+from conveyor.pipeline import Pipeline
+from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
+from math import sqrt
+
+def square_root(arg):
+    return sqrt(arg)
+
+def cube(arg):
+    return arg ** 3
+
+pl = Pipeline()
+
+# Duplicate the input
+pl.add(ReplicatingFork(2))
+
+# On first copy, compute the square root, on the second, the cube
+pl.add(Processor(square_root), Processor(cube))
+
+# On first copy, compute the square root, on the second, do nothing
+pl.add(Processor(square_root), Pipe())
+
+# Join the two data streams
+pl.add(Join(2))
+
+# Print the results
+pl.add(Processor(print))
+
+# Run the pipeline with three different inputs
+pl.run([16, 3, 81])
+```
+
+```console
+$ python3 sample.py 
+2.0
+1.3160740129524924
+3.0
+4096
+27
+531441
+```
+
+## Other links
+
+* [Documentation](https://parallel-conveyor.readthedocs.io/en/latest/)
+* [PyPI project page](https://pypi.org/project/parallel-conveyor/)
+
+## A note on stability
+Conveyor is currently considered in alpha. Specifications will change, potentially in breaking ways.
+
+## Testing
 To run the tests, ensure nose is installed and run nosetests from the project directory
 
 `pip3 install nose && nosetests`
 
-# Building from source
+## Building from source
 To build the distribution archives, you will need the latest version of setuptools and wheel.
 
 `python3 -m pip install --user --upgrade setuptools wheel`
