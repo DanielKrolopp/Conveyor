@@ -56,8 +56,7 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 extensions = ['recommonmark']
-
-# At the bottom of conf.py
+master_doc = 'index'
 
 
 def setup(app):
