@@ -21,31 +21,30 @@ from conveyor.pipeline import Pipeline
 from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 from math import sqrt
 
+
 def square_root(arg):
     return sqrt(arg)
 
 def cube(arg):
     return arg ** 3
 
-pipeline = Pipeline()
+with Pipeline() as pl:
+    # Duplicate the input
+    pl.add(ReplicatingFork(2))
 
-# Duplicate the input
-pipeline.add(ReplicatingFork(2))
+    # On first copy, compute the sqrt, on the second, the cube
+    pl.add(Processor(square_root), Processor(cube))
 
-# On first copy, compute the square root, on the second, the cube
-pipeline.add(Processor(square_root), Processor(cube))
+    # On first copy, compute the sqrt, on the second, do nothing
+    pl.add(Processor(square_root), Pipe())
 
-# On first copy, compute the square root, on the second, do nothing
-pipeline.add(Processor(square_root), Pipe())
+    # Join the two data streams
+    pl.add(Join(2))
 
-# Join the two data streams
-pipeline.add(Join(2))
+    # Print the results
+    pl.add(Processor(print))
 
-# Print the results
-pipeline.add(Processor(print))
-
-# Run the pipeline with three different inputs
-with pipeline as pl:
+    # Run the pipeline with three different inputs
     pl.run([16, 3, 81])
 ```
 

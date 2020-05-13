@@ -185,6 +185,7 @@ class TestPipelineFunctionality(TestCase):
             self.assertTrue(pipeline.opened, 'Pipeline should be opened')
             pipeline.run([1, 2])
             self.assertTrue(pipeline.opened, 'Pipeline should be opened')
+            self.assertFalse(pipeline.closed, 'Pipeline should be opened')
             pipeline.run([1, 2])
             self.assertTrue(pipeline.opened, 'Pipeline should be opened')
 
@@ -214,3 +215,107 @@ class TestPipelineFunctionality(TestCase):
         self.assertTrue(pl.closed, 'Pipeline should be closed')
         pl.run([2, 7, 9])
         self.assertTrue(pl.closed, 'Pipeline should be closed')
+
+    '''
+    When calling .run() with the surrounding `with` statement, we should be
+    able to build the pipeline within the `with` statement.
+    '''
+    def test_reopening_pipeline(self):
+        def add(arg):
+            return arg + 1
+
+        def sub(arg):
+            return arg - 1
+
+        with Pipeline() as pl:
+            pl.add(BalancingFork(2))
+            pl.add(Processor(add), Processor(sub))
+            pl.add(Join(2))
+
+            print(pl.opened, pl.closed, pl.close_after_run)
+
+            pl.run([3])
+
+            print(pl.opened, pl.closed, pl.close_after_run)
+            self.assertTrue(pl.opened, 'Pipeline should be open')
+            self.assertFalse(pl.closed, 'Pipeline should be open')
+
+            pl.run([4])
+            pl.run([5])
+
+            self.assertTrue(pl.opened, 'Pipeline should be open')
+            self.assertFalse(pl.closed, 'Pipeline should be open')
+
+            pl.run([10])
+
+            self.assertTrue(pl.opened, 'Pipeline should be open')
+            self.assertFalse(pl.closed, 'Pipeline should be open')
+
+        self.assertFalse(pl.opened, 'Pipeline should be closed')
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
+
+    '''
+    Allow calling Pipeline.run() without an array (on just a single element)
+    '''
+
+    def test_run_single_element(self):
+        with Pipeline() as pl:
+            pl.add(Processor(dummy_return_arg))
+            try:
+                pl.run('test')
+            except Exception:
+                self.fail('Should not raise an exception: ' + str(e))
+
+    '''
+    If the user does not use the `with` keyword, make sure that open and close
+    still work. Also, the process shouldn't hang if we neglect to call .close()
+    '''
+
+    def test_open_close_no_with(self):
+        from math import sqrt
+
+        def square_root(arg):
+            return sqrt(arg)
+
+        def cube(arg):
+            return arg ** 3
+
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
+        pl.add(Processor(square_root), Processor(cube))
+        pl.add(Processor(square_root), Pipe())
+        pl.add(Join(2))
+        pl.add(Processor(print))
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
+        pl.open()
+        pl.run([16, 3, 81])
+        self.assertTrue(pl.opened, 'Pipeline should be open')
+        pl.close()
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
+        pl.open() # Leave it open -- daemon children should be cleaned up
+        self.assertTrue(pl.opened, 'Pipeline should be open')
+
+    '''
+    Make sure people can't run repeated opens or closes without opens, etc.
+    '''
+    def test_disallow_inane_opens_and_closes(self):
+        pl = Pipeline()
+
+        with self.assertRaises(Exception) as e:
+            pl.close()
+        self.assertEqual(
+            str(e.exception), 'Cannot close a Pipeline that is already closed!')
+
+        pl.open()
+
+        with self.assertRaises(Exception) as e:
+            pl.open()
+        self.assertEqual(
+            str(e.exception), 'Cannot open a Pipeline that is already open!')
+
+        pl.close()
+
+        with self.assertRaises(Exception) as e:
+            pl.close()
+        self.assertEqual(
+            str(e.exception), 'Cannot close a Pipeline that is already closed!')

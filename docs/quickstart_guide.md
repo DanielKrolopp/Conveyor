@@ -15,11 +15,17 @@ Pipelines form the core of Conveyor. They are the object through which data flow
 ```python
 from conveyor.pipeline import Pipeline
 
-pipeline = Pipeline()
+pl = Pipeline()
 ```
 
-We can add stages to a pipeline using the `.add()` function, and run them using `.run()`.
+We can add stages to a pipeline using the `.add()` function, and run them using `.run()`. Additionally, we can use the `with` keyword to define a Pipeline to automatically free up resources used after we're done using the pipeline. You will often see this method used in our documentation.
 
+```python
+from conveyor.pipeline import Pipeline
+
+with Pipeline() as pl:
+    # Code involving the pipeline goes here
+```
 ## Stages
 We now need to add stages to our pipeline. Stages will allow us to process our data and acheive throughput to enhance the performance of our program. Stages are added using the Pipeline object's `.add()` function. Stages come in 4 main types:
 
@@ -37,8 +43,8 @@ from conveyor.stages import Processor
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(Processor(job))
+with Pipeline() as pl:
+    pl.add(Processor(job))
 ```
 
 ### Pipes
@@ -51,10 +57,10 @@ from conveyor.stages import Processor, Pipe
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(Processor(job))
-pipeline.add(Pipe())
-pipeline.add(Processor(job))
+with Pipeline() as pl:
+    pl.add(Processor(job))
+    pl.add(Pipe())
+    pl.add(Processor(job))
 ```
 
 Equivalently, we could write the same code without the Pipe, as Conveyor will add it implicitly.
@@ -66,9 +72,9 @@ from conveyor.stages import Processor, Pipe
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(Processor(job))
-pipeline.add(Processor(job))
+with Pipeline() as pl:
+    pl.add(Processor(job))
+    pl.add(Processor(job))
 ```
 
 ### Forks
@@ -86,9 +92,9 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(ReplicatingFork(2))
-pipeline.add(Processor(job), Pipe())
+with Pipeline() as pl:
+    pl.add(ReplicatingFork(2))
+    pl.add(Processor(job), Pipe())
 ```
 
 #### Balancing Forks
@@ -101,9 +107,9 @@ from conveyor.stages import Processor, Pipe, BalancingFork, Join
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(BalancingFork(2))
-pipeline.add(Processor(job), Pipe())
+with Pipeline() as pl:
+    pl.add(BalancingFork(2))
+    pl.add(Processor(job), Pipe())
 ```
 
 ### Joins
@@ -118,11 +124,11 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(ReplicatingFork(2))
-pipeline.add(Processor(job), Pipe())
-pipeline.add(Join(2))
-pipeline.add(Processor(print))
+with Pipeline() as pl:
+    pl.add(ReplicatingFork(2))
+    pl.add(Processor(job), Pipe())
+    pl.add(Join(2))
+    pl.add(Processor(print))
 ```
 
 ## Running a pipeline
@@ -135,14 +141,12 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pipeline = Pipeline()
-pipeline.add(ReplicatingFork(2))
-pipeline.add(Processor(job), Pipe())
-pipeline.add(Join(2))
-pipeline.add(Processor(print))
-
-with pipeline as pl:
-    pipeline.run([2, 9, 11])
+with Pipeline() as pl:
+    pl.add(ReplicatingFork(2))
+    pl.add(Processor(job), Pipe())
+    pl.add(Join(2))
+    pl.add(Processor(print))
+    pl.run([2, 9, 11])
 ```
 
 Yields this output (separated by new lines): `3 10 12 2 9 11`.

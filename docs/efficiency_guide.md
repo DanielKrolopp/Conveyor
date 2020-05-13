@@ -9,20 +9,19 @@ Pipelines can be run in two different ways, as demonstrated with the code
 snippets below:
 
 ```python3
-pipeline = Pipeline()
-pipeline.add(job)
+pl = Pipeline()
+pl.add(job)
 
-pipeline.run([data, data2, data3])
-pipeline.run([data4, data5, data6])
+pl.run([data, data2, data3])
+pl.run([data4, data5, data6])
 ```
 
 or...
 
 ```python3
-pipeline = Pipeline()
-pipeline.add(job)
+with Pipeline() as pl:
+    pl.add(job)
 
-with pipeline as pl:
     pl.run([data, data2, data3])
     pl.run([data4, data5, data6])
 ```
@@ -37,10 +36,6 @@ invocation of `.run()`, keep them running, and then use them again on the
 second invocation of `.run()`. This is what the second case does, where the
 pipeline is implicitly opened and closed at the start and end of the `with`
 statement.
-
-__Note: do not build the pipeline (call `.add()`) within the
-`with` block. This will open the pipeline with no processes running, and your
-pipeline will not work as expected.__
 
 ## Use shared memory for read-only data
 Passing large quantities of data between processors is expensive. It's

@@ -22,6 +22,8 @@ class Pipeline:
         self.opened = False  # Has the pipeline been opened with .open()?
         self.closed = True  # Opposite of .open
         self.close_after_run = True  # Automatically close PL if not in `with`
+        self.edited = False  # Has the PL been edited since calling .open()?
+        self.has_run = False  # Has the PL been run? Prevent .add after .run
 
         # initiate shared memory if it is requested
         if shared_memory_amt > 0:
@@ -50,6 +52,18 @@ class Pipeline:
         if not isinstance(args[0], (Pipe, Processor, _Fork, Join)):
             raise Exception(
                 'Invalid type! Pipelines must include only Conveyor types!')
+
+        # Check if the pipeline has already run... we can't add stages after a
+        # pipeline has already run
+        if self.has_run:
+            raise Exception('Pipelines cannot be modified after being run!')
+
+        self.edited = True
+        if self.opened:
+            before = self.close_after_run
+            self.close_after_run = True
+            self.close()
+            self.close_after_run = before
 
         # Check for valid stages in the pipeline
         mixed_step = False
@@ -302,6 +316,9 @@ class Pipeline:
 
     def close(self):
 
+        if self.closed:
+            raise Exception('Cannot close a Pipeline that is already closed!')
+
         # If someone opened with a `with ... as ...` statement, then it will
         # automatically close by itself
         if self.close_after_run:
@@ -312,27 +329,35 @@ class Pipeline:
             self.pipeline_head[0].pipe_in[0].put(None)
 
     def open(self):
+        if self.opened:
+            raise Exception('Cannot open a Pipeline that is already open!')
+
         self.opened = True
         self.closed = False
+        self.edited = False
         stages = self.pipeline_head
 
         while stages[0]:
             for stage in stages:
                 if isinstance(stage, Processor):
                     p = Process(target=stage.process)
+                    p.daemon = True # Child dies when parent dies
                     p.start()
                 elif isinstance(stage, Pipe):
                     # Display final results
                     if stages == self.pipeline_tail:
                         p = Process(target=stage.finalize)
+                        p.daemon = True
                         p.start()
                 elif isinstance(stage, _Fork):
                     # Display final results
                     p = Process(target=stage.fork)
+                    p.daemon = True
                     p.start()
                 elif isinstance(stage, Join):
                     # Display final results
                     p = Process(target=stage.merge)
+                    p.daemon = True
                     p.start()
                 else:
                     raise Exception('Unknown stage in the pipeline!', stage)
@@ -343,13 +368,29 @@ class Pipeline:
     # This traverses the linked-list type structure to create a process for each
     # Processor/Pipe.
     def run(self, init_block_list):
+        self.has_run = True  # Prevent adding stages after running
+        was_opened = self.opened
+
+        # If someone edited the PL since calling .open(), we need to close the
+        # PL and re-open it to restart all the processes
+        if self.edited:
+            self.edited = False
+            if self.opened:
+                before = self.close_after_run
+                self.close_after_run = True
+                self.close()
+                self.close_after_run = before
 
         if self.closed:
             self.open()
 
         # bootstrap the pipeline by inserting init_block into the pipeline head
-        for block in init_block_list:
-            self.pipeline_head[0].pipe_in[0].put(block)
+        if isinstance(init_block_list, list):
+            for block in init_block_list:
+                self.pipeline_head[0].pipe_in[0].put(block)
+        else:
+            self.pipeline_head[0].pipe_in[0].put(init_block_list)
 
-        if self.opened:
+        # Don't close the PL if we weren't the ones to open it
+        if not was_opened:
             self.close()

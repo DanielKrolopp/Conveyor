@@ -243,3 +243,33 @@ class TestPipelineArchitecture(TestCase):
             pl.add(_Fork(2))
         self.assertEqual(
             str(e.exception), '_Fork is an abstract class. Use ReplicatingFork or BalancingFork instead.')
+
+    '''
+    Users should not be able to add pipeline stages after running the PL
+    '''
+
+    def test_no_add_after_run(self):
+        def add(arg):
+            return arg + 1
+
+        def sub(arg):
+            return arg - 1
+
+        def printer(arg):
+            print(arg)
+
+        with self.assertRaises(Exception) as e:
+            with Pipeline() as pl:
+                pl.add(BalancingFork(2))
+                pl.add(Processor(add), Processor(sub))
+                pl.add(Join(2))
+                pl.add(Processor(print))
+
+                pl.run([3])
+
+                pl.add(Processor(printer))
+
+                pl.run([10])
+
+        self.assertEqual(
+            str(e.exception), 'Pipelines cannot be modified after being run!')

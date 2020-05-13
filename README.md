@@ -12,7 +12,7 @@ Install Conveyor with `pip install parallel-conveyor`.
 
 Let's say we wanted to build a short pipeline that computed the fourth root of a number (done in two steps) and the cube of a number (in one step). In this case, we would describe this pipeline visually as such:
 
-![Schematic](https://parallel-conveyor.readthedocs.io/en/latest/_images/Fork-and-join.png)
+![](https://parallel-conveyor.readthedocs.io/en/latest/_images/Fork-and-join.png)
 
 To express it with Conveyor, we simply build the pipeline as follows
 
@@ -27,25 +27,23 @@ def square_root(arg):
 def cube(arg):
     return arg ** 3
 
-pipeline = Pipeline()
+with Pipeline() as pl:
+    # Duplicate the input
+    pl.add(ReplicatingFork(2))
 
-# Duplicate the input
-pipeline.add(ReplicatingFork(2))
+    # On first copy, compute the sqrt, on the second, the cube
+    pl.add(Processor(square_root), Processor(cube))
 
-# On first copy, compute the square root, on the second, the cube
-pipeline.add(Processor(square_root), Processor(cube))
+    # On first copy, compute the sqrt, on the second, do nothing
+    pl.add(Processor(square_root), Pipe())
 
-# On first copy, compute the square root, on the second, do nothing
-pipeline.add(Processor(square_root), Pipe())
+    # Join the two data streams
+    pl.add(Join(2))
 
-# Join the two data streams
-pipeline.add(Join(2))
+    # Print the results
+    pl.add(Processor(print))
 
-# Print the results
-pipeline.add(Processor(print))
-
-# Run the pipeline with three different inputs
-with pipeline as pl:
+    # Run the pipeline with three different inputs
     pl.run([16, 3, 81])
 ```
 
