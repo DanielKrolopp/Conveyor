@@ -157,3 +157,60 @@ class TestPipelineFunctionality(TestCase):
         pl.add(Join(4))
         pl.add(Processor(count))
         pl.run([(0, 'string'), (0, 'string')])
+
+    '''
+    Test open/close paradigm. Should only call Pipeline.open() and
+    Pipeline.close() once each.
+    '''
+
+    def test_open_close(self):
+        from math import sqrt
+
+        def square_root(arg):
+            return sqrt(arg)
+
+        def cube(arg):
+            return arg ** 3
+
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
+        pl.add(Processor(square_root), Processor(cube))
+        pl.add(Processor(square_root), Pipe())
+        pl.add(Pipe())
+        pl.add(Join(2))
+        pl.add(Processor(print))
+        self.assertTrue(pl.closed)
+
+        with pl as pipeline:
+            self.assertTrue(pipeline.opened)
+            pipeline.run([1, 2])
+            self.assertTrue(pipeline.opened)
+            pipeline.run([1, 2])
+            self.assertTrue(pipeline.opened)
+
+        self.assertTrue(pl.closed)
+
+    '''
+    When calling .run() without the surrounding `with` statement, the Pipeline
+    should automatically open and close.
+    '''
+
+    def test_automatic_open_close(self):
+        from math import sqrt
+
+        def square_root(arg):
+            return sqrt(arg)
+
+        def cube(arg):
+            return arg ** 3
+
+        pl = Pipeline()
+        pl.add(ReplicatingFork(2))
+        pl.add(Processor(square_root), Processor(cube))
+        pl.add(Processor(square_root), Pipe())
+        pl.add(Pipe())
+        pl.add(Join(2))
+        pl.add(Processor(print))
+        self.assertTrue(pl.closed)
+        pl.run([2, 7, 9])
+        self.assertTrue(pl.closed)
