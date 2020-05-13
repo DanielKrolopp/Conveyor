@@ -27,29 +27,30 @@ def square_root(arg):
 def cube(arg):
     return arg ** 3
 
-pl = Pipeline()
+pipeline = Pipeline()
 
 # Duplicate the input
-pl.add(ReplicatingFork(2))
+pipeline.add(ReplicatingFork(2))
 
 # On first copy, compute the square root, on the second, the cube
-pl.add(Processor(square_root), Processor(cube))
+pipeline.add(Processor(square_root), Processor(cube))
 
 # On first copy, compute the square root, on the second, do nothing
-pl.add(Processor(square_root), Pipe())
+pipeline.add(Processor(square_root), Pipe())
 
 # Join the two data streams
-pl.add(Join(2))
+pipeline.add(Join(2))
 
 # Print the results
-pl.add(Processor(print))
+pipeline.add(Processor(print))
 
 # Run the pipeline with three different inputs
-pl.run([16, 3, 81])
+with pipeline as pl:
+    pl.run([16, 3, 81])
 ```
 
 ```console
-$ python3 sample.py 
+$ python3 sample.py
 2.0
 1.3160740129524924
 3.0
