@@ -293,7 +293,7 @@ class Pipeline:
 
     def __enter__(self):
         self.close_after_run = False
-        # self.open()
+        self.open()
         return self
 
     def __exit__(self, typ, value, traceback):
