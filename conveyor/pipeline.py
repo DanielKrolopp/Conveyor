@@ -3,7 +3,6 @@ from multiprocessing import Process, Queue
 from .stages import Processor, Pipe, _Fork, ReplicatingFork, Join
 from .syntax_analyzer import SyntaxAnalyzer
 from . import common_memory
-import os
 
 
 class Pipeline:
@@ -37,8 +36,6 @@ class Pipeline:
                 shared_memory_handle = shared_memory.SharedMemory(
                     name=common_memory, create=True, size=shared_memory_amt)
                 shared_memory_handle.close()
-
-        print(self, os.getpid())
 
     # Add a stage to the pipeline. The stage can be either a pipe or processor
     def add(self, *args):
@@ -296,7 +293,7 @@ class Pipeline:
 
     def __enter__(self):
         self.close_after_run = False
-        self.open()
+        # self.open()
         return self
 
     def __exit__(self, typ, value, traceback):
@@ -346,7 +343,6 @@ class Pipeline:
     # This traverses the linked-list type structure to create a process for each
     # Processor/Pipe.
     def run(self, init_block_list):
-        self._print()
 
         if self.closed:
             self.open()
@@ -357,10 +353,3 @@ class Pipeline:
 
         if self.opened:
             self.close()
-
-
-    def _print(self):
-        iterator = self.pipeline_head[0]
-        while iterator:
-            print(iterator)
-            iterator = iterator.next[0]

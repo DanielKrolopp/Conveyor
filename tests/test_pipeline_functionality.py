@@ -179,14 +179,14 @@ class TestPipelineFunctionality(TestCase):
         pl.add(Pipe())
         pl.add(Join(2))
         pl.add(Processor(print))
-        self.assertTrue(pl.closed)
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
 
         with pl as pipeline:
-            self.assertTrue(pipeline.opened)
+            self.assertTrue(pipeline.opened, 'Pipeline should be opened')
             pipeline.run([1, 2])
-            self.assertTrue(pipeline.opened)
+            self.assertTrue(pipeline.opened, 'Pipeline should be opened')
             pipeline.run([1, 2])
-            self.assertTrue(pipeline.opened)
+            self.assertTrue(pipeline.opened, 'Pipeline should be opened')
 
         self.assertTrue(pl.closed)
 
@@ -211,6 +211,6 @@ class TestPipelineFunctionality(TestCase):
         pl.add(Pipe())
         pl.add(Join(2))
         pl.add(Processor(print))
-        self.assertTrue(pl.closed)
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
         pl.run([2, 7, 9])
-        self.assertTrue(pl.closed)
+        self.assertTrue(pl.closed, 'Pipeline should be closed')
