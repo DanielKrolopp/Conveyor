@@ -15,7 +15,7 @@ Pipelines form the core of Conveyor. They are the object through which data flow
 ```python
 from conveyor.pipeline import Pipeline
 
-pl = Pipeline()
+pipeline = Pipeline()
 ```
 
 We can add stages to a pipeline using the `.add()` function, and run them using `.run()`.
@@ -37,8 +37,8 @@ from conveyor.stages import Processor
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(Processor(job))
+pipeline = Pipeline()
+pipeline.add(Processor(job))
 ```
 
 ### Pipes
@@ -51,10 +51,10 @@ from conveyor.stages import Processor, Pipe
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(Processor(job))
-pl.add(Pipe())
-pl.add(Processor(job))
+pipeline = Pipeline()
+pipeline.add(Processor(job))
+pipeline.add(Pipe())
+pipeline.add(Processor(job))
 ```
 
 Equivalently, we could write the same code without the Pipe, as Conveyor will add it implicitly.
@@ -66,9 +66,9 @@ from conveyor.stages import Processor, Pipe
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(Processor(job))
-pl.add(Processor(job))
+pipeline = Pipeline()
+pipeline.add(Processor(job))
+pipeline.add(Processor(job))
 ```
 
 ### Forks
@@ -86,13 +86,13 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(ReplicatingFork(2))
-pl.add(Processor(job), Pipe())
+pipeline = Pipeline()
+pipeline.add(ReplicatingFork(2))
+pipeline.add(Processor(job), Pipe())
 ```
 
 #### Balancing Forks
-__Balancing Forks__ allow one processor to balance a stream of data over multiple consumer processors. This will serve to minimize the effect of pipe stalling for larger data sets. The input-output numbering of the many-to-one relationship of forks is primarily determined by pipe stalling detected at runtime and the number of physical cores available. 
+__Balancing Forks__ allow one processor to balance a stream of data over multiple consumer processors. This will serve to minimize the effect of pipe stalling for larger data sets. The input-output numbering of the many-to-one relationship of forks is primarily determined by pipe stalling detected at runtime and the number of physical cores available.
 
 ```python
 from conveyor.pipeline import Pipeline
@@ -101,13 +101,13 @@ from conveyor.stages import Processor, Pipe, BalancingFork, Join
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(BalancingFork(2))
-pl.add(Processor(job), Pipe())
+pipeline = Pipeline()
+pipeline.add(BalancingFork(2))
+pipeline.add(Processor(job), Pipe())
 ```
 
 ### Joins
-__Joins__ allow multiple processors to combine their data streams into one logical pipe. The combined stream can then be forked again for the next step of the pipeline, processed by a single processor, or serve as output at the end of the pipeline. 
+__Joins__ allow multiple processors to combine their data streams into one logical pipe. The combined stream can then be forked again for the next step of the pipeline, processed by a single processor, or serve as output at the end of the pipeline.
 
 This means that the outputs from the previous parallel stages can be interleaved arbitrarily. Joins are useful when output from multiple different processors need to be serialized and work in a first-come-first-serve manner.
 
@@ -118,11 +118,11 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(ReplicatingFork(2))
-pl.add(Processor(job), Pipe())
-pl.add(Join(2))
-pl.add(Processor(print))
+pipeline = Pipeline()
+pipeline.add(ReplicatingFork(2))
+pipeline.add(Processor(job), Pipe())
+pipeline.add(Join(2))
+pipeline.add(Processor(print))
 ```
 
 ## Running a pipeline
@@ -135,13 +135,14 @@ from conveyor.stages import Processor, Pipe, ReplicatingFork, Join
 def job(arg):
     return arg + 1
 
-pl = Pipeline()
-pl.add(ReplicatingFork(2))
-pl.add(Processor(job), Pipe())
-pl.add(Join(2))
-pl.add(Processor(print))
+pipeline = Pipeline()
+pipeline.add(ReplicatingFork(2))
+pipeline.add(Processor(job), Pipe())
+pipeline.add(Join(2))
+pipeline.add(Processor(print))
 
-pl.run([2, 9, 11])
+with pipeline as pl:
+    pipeline.run([2, 9, 11])
 ```
 
 Yields this output (separated by new lines): `3 10 12 2 9 11`.

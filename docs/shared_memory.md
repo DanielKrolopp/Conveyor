@@ -59,9 +59,13 @@ def cleanup_task(args):
 
     return args
 
-pl = Pipeline(shared_memory_amt=10)
-pl.add(Processor(worker1_task))
-pl.add(Processor(worker2_task))
-pl.add(Processor(cleanup_task))
-pl.run(['abc'])
+pipeline = Pipeline(shared_memory_amt=10)
+pipeline.add(Processor(worker1_task))
+pipeline.add(Processor(worker2_task))
+pipeline.add(Processor(cleanup_task))
+
+with pipeline as pl:
+    pl.run(['abc'])
 ```
+
+Yields this output: `array('b', [44, 11, 22, 33])`
