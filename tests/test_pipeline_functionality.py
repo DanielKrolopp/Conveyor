@@ -232,11 +232,8 @@ class TestPipelineFunctionality(TestCase):
             pl.add(Processor(add), Processor(sub))
             pl.add(Join(2))
 
-            print(pl.opened, pl.closed, pl.close_after_run)
-
             pl.run([3])
 
-            print(pl.opened, pl.closed, pl.close_after_run)
             self.assertTrue(pl.opened, 'Pipeline should be open')
             self.assertFalse(pl.closed, 'Pipeline should be open')
 
@@ -298,7 +295,7 @@ class TestPipelineFunctionality(TestCase):
     '''
     Make sure people can't run repeated opens or closes without opens, etc.
     '''
-    def test_disallow_inane_opens_and_closes(self):
+    def test_disallow_inane_opens_and_closes_normal(self):
         pl = Pipeline()
 
         with self.assertRaises(Exception) as e:
@@ -319,3 +316,20 @@ class TestPipelineFunctionality(TestCase):
             pl.close()
         self.assertEqual(
             str(e.exception), 'Cannot close a Pipeline that is already closed!')
+
+    '''
+    Make sure people can't call open and close within `with` statements.
+    '''
+    def test_disallow_inane_opens_and_closes_in_with_statement(self):
+        with Pipeline() as pl:
+            pl.add(Processor(dummy_return_arg))
+
+            with self.assertRaises(Exception) as e:
+                pl.open()
+            self.assertEqual(
+                str(e.exception), 'Cannot open a pipeline within a `with` statement!')
+
+            with self.assertRaises(Exception) as e:
+                pl.close()
+            self.assertEqual(
+                str(e.exception), 'Cannot close a pipeline within a `with` statement!')

@@ -21,7 +21,7 @@ class Pipeline:
         self.active_fork = None
         self.opened = False  # Has the pipeline been opened with .open()?
         self.closed = True  # Opposite of .open
-        self.close_after_run = True  # Automatically close PL if not in `with`
+        self.in_with = False  # Set in __enter__() to regulate auto open and close
         self.edited = False  # Has the PL been edited since calling .open()?
         self.has_run = False  # Has the PL been run? Prevent .add after .run
 
@@ -60,10 +60,10 @@ class Pipeline:
 
         self.edited = True
         if self.opened:
-            before = self.close_after_run
-            self.close_after_run = True
-            self.close()
-            self.close_after_run = before
+            before = self.in_with
+            self.in_with = True
+            self._auto_close()
+            self.in_with = before
 
         # Check for valid stages in the pipeline
         mixed_step = False
@@ -306,29 +306,48 @@ class Pipeline:
             self.add(Pipe())
 
     def __enter__(self):
-        self.close_after_run = False
-        self.open()
+        self._auto_open()
+        self.in_with = True
         return self
 
     def __exit__(self, typ, value, traceback):
-        self.close_after_run = True
-        self.close()
+        if self.opened:
+            self._auto_close()
+        self.in_with = False
 
-    def close(self):
+    # Occurs when a user calls .close(). Performs a check to make sure we aren't
+    # in a `with` statement, then allows it to close.
+    def _user_close(self):
+        if self.in_with:
+            raise Exception('Cannot close a pipeline within a `with` statement!')
+        self._auto_close()
 
+    # Works if we are within a `with` statement. Performs the actual cleanup.
+    def _auto_close(self):
         if self.closed:
             raise Exception('Cannot close a Pipeline that is already closed!')
 
         # If someone opened with a `with ... as ...` statement, then it will
         # automatically close by itself
-        if self.close_after_run:
-            self.closed = True
-            self.opened = False
+        self.closed = True
+        self.opened = False
 
-            # Push the 'magic value' through to close the PL
-            self.pipeline_head[0].pipe_in[0].put(None)
+        # Push the 'magic value' through to close the PL
+        self.pipeline_head[0].pipe_in[0].put(None)
 
-    def open(self):
+    # A wrapper for _user_close().
+    def close(self):
+        self._user_close()
+
+    # Occurs when a user calls .open(). Performs a check to make sure we aren't
+    # in a `with` statement, then allows it to close.
+    def _user_open(self):
+        if self.in_with:
+            raise Exception('Cannot open a pipeline within a `with` statement!')
+        self._auto_open()
+
+    # Works if we are within a `with` statement. Performs the actual cleanup.
+    def _auto_open(self):
         if self.opened:
             raise Exception('Cannot open a Pipeline that is already open!')
 
@@ -341,7 +360,7 @@ class Pipeline:
             for stage in stages:
                 if isinstance(stage, Processor):
                     p = Process(target=stage.process)
-                    p.daemon = True # Child dies when parent dies
+                    p.daemon = True  # Child dies when parent dies
                     p.start()
                 elif isinstance(stage, Pipe):
                     # Display final results
@@ -364,6 +383,10 @@ class Pipeline:
 
             stages = stages[0].next
 
+    # A wrapper for _user_open().
+    def open(self):
+        self._user_open()
+
     # Run the pipeline, starting with init_block as the input data object.
     # This traverses the linked-list type structure to create a process for each
     # Processor/Pipe.
@@ -376,13 +399,10 @@ class Pipeline:
         if self.edited:
             self.edited = False
             if self.opened:
-                before = self.close_after_run
-                self.close_after_run = True
-                self.close()
-                self.close_after_run = before
+                self._auto_close()
 
         if self.closed:
-            self.open()
+            self._auto_open()
 
         # bootstrap the pipeline by inserting init_block into the pipeline head
         if isinstance(init_block_list, list):
@@ -392,5 +412,5 @@ class Pipeline:
             self.pipeline_head[0].pipe_in[0].put(init_block_list)
 
         # Don't close the PL if we weren't the ones to open it
-        if not was_opened:
-            self.close()
+        if not was_opened and not self.in_with:
+            self._auto_close()
